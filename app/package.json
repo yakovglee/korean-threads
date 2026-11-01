@@ -1,0 +1,44 @@
+{
+  "name": "korean-grammar",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "catalog": "tsx scripts/import-catalog.ts",
+    "index": "tsx scripts/index-books.ts",
+    "eval:embeddings": "tsx scripts/eval-embeddings.ts",
+    "topik:ocr": "tsx scripts/topik/ocr.ts",
+    "topik:parse": "tsx scripts/topik/parse.ts",
+    "topik:upload": "tsx scripts/topik/upload.ts"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "3.1.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
+    "ai": "7.0.159",
+    "fast-xml-parser": "5.11.2",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "18.0.9",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "supabase": "2.122.0",
+    "tailwindcss": "^4",
+    "tsx": "4.23.15",
+    "typescript": "^5"
+  }
+}

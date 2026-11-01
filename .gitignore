@@ -4,6 +4,7 @@ books/
 # Собранные бинарники OCR
 tools/ocr/ocr
 tools/ocr/pdftext-check
+tools/ocr/pdf2png
 
 # Ссылка на скилл вне репозитория
 .claude/skills/find-skills
@@ -12,3 +13,4 @@ tools/ocr/pdftext-check
 .env*
 node_modules/
 .vercel/
+!.env.example
