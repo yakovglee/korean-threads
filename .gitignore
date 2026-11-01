@@ -1,0 +1,14 @@
+# Учебники и экзамены TOPIK: авторские права и ~2 ГБ (docs/adr/0003-books-outside-repo.md)
+books/
+
+# Собранные бинарники OCR
+tools/ocr/ocr
+tools/ocr/pdftext-check
+
+# Ссылка на скилл вне репозитория
+.claude/skills/find-skills
+
+.DS_Store
+.env*
+node_modules/
+.vercel/
