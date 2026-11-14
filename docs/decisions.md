@@ -1,8 +1,8 @@
 # Решения
 
-Архитектура и деплой: specs/korean-threads/TECH.md (в корне). Здесь только то, чего там нет.
+Архитектура и деплой: specs/korean-threads/TECH.md. Здесь только то, чего там нет.
 
-- Код в korean-threads-app/ со своим git. Спеки, DESIGN.md и снимки ревью лежат в корне, корень не под git.
+- Всё в одном репозитории: код, спеки, PRODUCT.md, DESIGN.md, .impeccable/ и конфиг Claude. Claude Code открывается в этой папке. Книги и OCR лежат вне репозитория, в ../books/.
 - Next.js 16, App Router, чистый CSS без Tailwind, иконки lucide-react.
 - Источник дизайн-токенов DESIGN.md, src/app/globals.css их повторяет.
 - В демо роль задаёт маршрут: / владелец, /viewer зритель.

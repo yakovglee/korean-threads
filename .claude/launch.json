@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "korean-threads-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/yakov/Documents/korean-threads/korean-threads-app", "run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    }
+  ]
+}

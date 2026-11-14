@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# impeccable: снимки ревью и состояние live-сессий
+/.impeccable/review/
+/.impeccable/live/
+
+# личные настройки Claude Code
+/.claude/settings.local.json
