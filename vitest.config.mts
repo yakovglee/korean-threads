@@ -10,5 +10,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // PGlite с миграцией на каждый тест: под нагрузкой 5 секунд по умолчанию не хватает
+    testTimeout: 30_000,
   },
 });

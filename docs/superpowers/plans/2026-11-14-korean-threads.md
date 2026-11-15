@@ -338,8 +338,8 @@ it('analyze: 404 → [], 500 и сетевая ошибка → AnalyzerError', 
 ### Task 6: База знаний: извлечение, OCR, индекс и поиск
 
 **Files:**
-- Create: `src/lib/kb/extract.ts`, `src/lib/kb/index.ts`, `scripts/ingest-kb.ts`
-- Test: `tests/kb.test.ts`
+- Create: `src/lib/kb/extract.ts`, `src/lib/kb/index.ts`, `src/lib/kb/search.ts`, `scripts/ingest-kb.ts`
+- Test: `tests/kb.extract.test.ts`, `tests/kb.index.test.ts`, `tests/kb.search.test.ts`
 
 **Interfaces:**
 - Consumes: `LlmClient` (Task 4), `kb_*` таблицы (Task 1), `nfc` (Task 2).
@@ -361,7 +361,7 @@ export function searchKb(db: Database, llm: LlmClient, query: string, opts: { k:
 
 Правила: страница с текстовым слоем ≥ `minChars` символов берётся как есть (`via: 'text'`), иначе распознаётся визуальной моделью (`via: 'ocr'`); результат OCR кэшируется в `data/ocr/<sha1 файла>/<страница>.md`, повторный запуск не вызывает модель. Промпт OCR: дословно переписать страницу в Markdown, сохранить номера вопросов и варианты ①–④, таблицы как таблицы, ничего не пояснять. `.md` файлы режутся напрямую (одна «страница»). Векторы хранятся в колонке `vec vector(N)` (`pgvector`); `searchKb` — гибрид: до 20 по `pg_trgm` (`similarity`; для запроса короче 3 символов `ILIKE`) и до 20 по косинусу (`<=>`), слияние `rrf`; GIN-индекс `pg_trgm` по `text` создаётся миграцией. Скрипты `ingest-kb` и `ingest-exams` читают файлы из `KB_SOURCE_DIR` и кэш `data/ocr/` на Mac и пишут в Postgres только чанки и векторы; файлы и OCR-кэш в облако не отправляются.
 
-- [ ] **Step 1: Тесты**
+- [x] **Step 1: Тесты**
 
 ```ts
 it('chunkPages режет по пустым строкам и держит ref заголовка', () => {})
@@ -374,9 +374,9 @@ it('searchKb: короткий запрос "도" находит по LIKE, "-�
 it('NFD-запрос находит NFC-текст', async () => {})
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/kb.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать.** Рендер PDF: `mupdf` (WASM) или `pdfjs-dist` с `@napi-rs/canvas`, выбрать по актуальной документации. `scripts/ingest-kb.ts` обходит рекурсивно `books/md/*.md`, `books/GRAMMAR_MAIN.md` (kind `grammar`), оба PDF `합격 레시피` (kind `textbook`) и все PDF в `books/TOPIK/` (kind `exam`); файлы с неотображаемыми именами и `.mp3`/`.djvu` пропускает с записью причины. Флаги `--dry-run` (подсчёт страниц без текстового слоя и оценка стоимости OCR по трём пробным страницам, без записи) и `--yes` (без него полный OCR не стартует).
-- [ ] **Step 4: Тесты проходят.**
+- [x] **Step 2: Запустить `npx vitest run tests/kb.extract.test.ts tests/kb.index.test.ts tests/kb.search.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать.** Рендер PDF: `mupdf` (WASM) или `pdfjs-dist` с `@napi-rs/canvas`, выбрать по актуальной документации. `scripts/ingest-kb.ts` обходит рекурсивно `books/md/*.md`, `books/GRAMMAR_MAIN.md` (kind `grammar`), оба PDF `합격 레시피` (kind `textbook`) и все PDF в `books/TOPIK/` (kind `exam`); файлы с неотображаемыми именами и `.mp3`/`.djvu` пропускает с записью причины. Флаги `--dry-run` (подсчёт страниц без текстового слоя и оценка стоимости OCR по трём пробным страницам, без записи) и `--yes` (без него полный OCR не стартует).
+- [x] **Step 4: Тесты проходят.**
 - [ ] **Step 5: `npx tsx scripts/ingest-kb.ts --dry-run`: показать владельцу, сколько страниц надо распознавать и во сколько это обойдётся. После его согласия: пробное OCR трёх страниц (учебник, лист вопросов экзамена, таблица ответов), показать текст на сверку, затем полный запуск с `--yes`, затем `embedMissing`.**
 - [ ] **Step 6: Commit `feat: knowledge base with ocr and hybrid search`.**
 
