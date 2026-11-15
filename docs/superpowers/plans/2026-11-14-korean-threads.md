@@ -157,7 +157,7 @@ it('loadConfig: модели по умолчанию и переопределе
   - `ingestLists(db: Database, vocabCsv: string, grammarCsv: string): { vocab: number; grammar: number; warnings: string[] }`
 - Id-схема: `v:<전체 번호>`, `g:<전체 번호>`.
 
-- [ ] **Step 1: Тесты**
+- [x] **Step 1: Тесты**
 
 ```ts
 it('splitHomograph', () => {
@@ -182,10 +182,10 @@ it('parseGradeList grammar', () => {
 it('ingestLists на реальных файлах: 5690 слов и 224 конструкции на уровнях 1–4', () => { /* books/…csv, select count(*) where level<=4 */ })
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/ko.test.ts tests/lists.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать.** Файлы в `books/` содержат неверные байты UTF-8: декодировать с заменой, строки с `�` записывать в `warnings` и в `data/ingest-warnings.json`. Колонки находить по имени заголовка (в словаре колонка `등급` встречается дважды: брать первую). `scripts/ingest-lists.ts` читает оба CSV из `books/`.
-- [ ] **Step 4: Тесты проходят; запустить `npx tsx scripts/ingest-lists.ts`, увидеть «vocab 5690 / grammar 224 (1–4급), всего 10 635 / 336».**
-- [ ] **Step 5: Commit `feat: ingest vocab and grammar grade lists`.**
+- [x] **Step 2: Запустить `npx vitest run tests/ko.test.ts tests/lists.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать.** Файлы в `books/` содержат неверные байты UTF-8: декодировать с заменой, строки с `�` записывать в `warnings` и в `data/ingest-warnings.json`. Колонки находить по имени заголовка (в словаре колонка `등급` встречается дважды: брать первую). `scripts/ingest-lists.ts` читает оба CSV из `books/`.
+- [x] **Step 4: Тесты проходят; запустить `npx tsx scripts/ingest-lists.ts`, увидеть «vocab 5690 / grammar 224 (1–4급), всего 10 635 / 336».**
+- [x] **Step 5: Commit `feat: ingest vocab and grammar grade lists`.**
 
 ---
 
