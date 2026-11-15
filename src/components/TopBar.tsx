@@ -2,6 +2,7 @@
 
 import { ChartNoAxesColumn } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "./ThemeToggle";
 
 /** Тонкая шапка: прячется при прокрутке вниз, возвращается при прокрутке вверх */
 export function TopBar({ viewer }: { viewer: boolean }) {
@@ -54,12 +55,15 @@ export function TopBar({ viewer }: { viewer: boolean }) {
     <header className="topbar" data-hidden={hidden}>
       <div className="topbar__inner">
         <span className="topbar__title">Korean Threads</span>
-        {/* «Прогресс» только у владельца (П-71); страница вне этого экрана */}
-        {viewer ? null : (
-          <button type="button" className="icon-btn icon-btn--end" aria-label="Прогресс">
-            <ChartNoAxesColumn size={24} strokeWidth={2} aria-hidden="true" />
-          </button>
-        )}
+        <div className="topbar__actions">
+          <ThemeToggle />
+          {/* «Прогресс» только у владельца (П-71); страница вне этого экрана */}
+          {viewer ? null : (
+            <button type="button" className="icon-btn" aria-label="Прогресс">
+              <ChartNoAxesColumn size={24} strokeWidth={2} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

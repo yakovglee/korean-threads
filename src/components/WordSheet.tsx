@@ -37,6 +37,14 @@ export function WordSheet({ word, status, closing, onClose, onRetry }: Props) {
     titleRef.current?.focus({ preventScroll: true });
   }, [word.key]);
 
+  // пока шторка открыта, лента под ней не прокручивается (см. html[data-sheet] в globals.css)
+  useEffect(() => {
+    document.documentElement.dataset.sheet = "open";
+    return () => {
+      delete document.documentElement.dataset.sheet;
+    };
+  }, []);
+
   // слово не должно оказаться под шторкой
   useEffect(() => {
     const sheet = sheetRef.current;

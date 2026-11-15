@@ -1,8 +1,9 @@
 /* Korean Threads: токены и стили ленты.
-   Источник значений: DESIGN.md (specs-папка). Тема следует системной настройке (П-58). */
+   Источник значений: DESIGN.md (specs-папка). Тема: атрибут data-theme на <html>.
+   Без выбора пользователя тема следует системной настройке (П-58), выбор — кнопка в шапке. */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --background: #fffbeb;
   --card: #ffffff;
@@ -73,38 +74,38 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #171412;
-    --card: #211d1a;
-    --muted: #2a2521;
-    --foreground: #f5f5f4;
-    --foreground-muted: #a8a29e;
-    --border: #38322d;
-    --border-strong: #a8a29e;
-    --word: #fbbf24;
-    --accent: #f59e0b;
-    --ring: #fbbf24;
-    --ai-bg: #3a2e12;
-    --ai-fg: #fde68a;
-    --ok: #4ade80;
-    --danger: #f87171;
-    --scrim: rgb(0 0 0 / 0.4);
-    --word-line: color-mix(in srgb, var(--word) 48%, transparent);
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    --av0-bg: #3b1d5e; --av0-fg: #e9d5ff;
-    --av1-bg: #0f3d3a; --av1-fg: #99f6e4;
-    --av2-bg: #4a1d18; --av2-fg: #fecaca;
-    --av3-bg: #14381f; --av3-fg: #bbf7d0;
-    --av4-bg: #3f3410; --av4-fg: #fde68a;
-    --av5-bg: #472210; --av5-fg: #fed7aa;
-    --av6-bg: #4a1a33; --av6-fg: #fbcfe8;
-    --av7-bg: #0c3047; --av7-fg: #bae6fd;
+  --background: #171412;
+  --card: #211d1a;
+  --muted: #2a2521;
+  --foreground: #f5f5f4;
+  --foreground-muted: #a8a29e;
+  --border: #38322d;
+  --border-strong: #a8a29e;
+  --word: #fbbf24;
+  --accent: #f59e0b;
+  --ring: #fbbf24;
+  --ai-bg: #3a2e12;
+  --ai-fg: #fde68a;
+  --ok: #4ade80;
+  --danger: #f87171;
+  --scrim: rgb(0 0 0 / 0.4);
+  --word-line: color-mix(in srgb, var(--word) 48%, transparent);
 
-    /* возвышение объявлено один раз: в светлой теме тень, в тёмной рамка */
-    --shadow-sheet: none;
-    --sheet-border: 1px solid var(--border);
-  }
+  --av0-bg: #3b1d5e; --av0-fg: #e9d5ff;
+  --av1-bg: #0f3d3a; --av1-fg: #99f6e4;
+  --av2-bg: #4a1d18; --av2-fg: #fecaca;
+  --av3-bg: #14381f; --av3-fg: #bbf7d0;
+  --av4-bg: #3f3410; --av4-fg: #fde68a;
+  --av5-bg: #472210; --av5-fg: #fed7aa;
+  --av6-bg: #4a1a33; --av6-fg: #fbcfe8;
+  --av7-bg: #0c3047; --av7-fg: #bae6fd;
+
+  /* возвышение объявлено один раз: в светлой теме тень, в тёмной рамка */
+  --shadow-sheet: none;
+  --sheet-border: 1px solid var(--border);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -129,6 +130,13 @@ html {
   /* полосы прокрутки несут палитру, а не серый по умолчанию */
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--border-strong) 55%, transparent) transparent;
+  /* место под полосу резервируется всегда: вёрстка не прыгает, когда полоса исчезает */
+  scrollbar-gutter: stable;
+}
+
+/* открытая шторка замораживает ленту; программная подкрутка слова (window.scrollBy в WordSheet) при этом работает */
+html[data-sheet="open"] {
+  overflow: hidden;
 }
 
 body {
@@ -240,8 +248,22 @@ input {
   touch-action: manipulation;
 }
 
-.icon-btn--end {
+.topbar__actions {
+  display: flex;
   margin-right: -10px;
+}
+
+/* в светлой теме видна луна (переход в тёмную), в тёмной солнце */
+.theme-toggle__sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle__moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle__sun {
+  display: block;
 }
 
 @media (hover: hover) {
@@ -587,6 +609,8 @@ input {
   inset: 0;
   z-index: var(--z-overlay);
   background: var(--scrim);
+  /* касание по затемнению не прокручивает ленту под шторкой */
+  touch-action: none;
   animation: scrim-in var(--dur-base) var(--ease-out) backwards;
 }
 
