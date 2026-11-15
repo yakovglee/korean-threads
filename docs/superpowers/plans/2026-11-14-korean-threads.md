@@ -117,7 +117,7 @@ export interface Check { id: string; source: 'exam' | 'post' | 'topik-style'; st
 
 `loadConfig`: `MODEL_*` из env, иначе значения из Global Constraints; `ANALYZER_URL` локально `http://127.0.0.1:8000`; `DATABASE_URL` обязателен (в тестах не нужен); `PUBLIC_FEED` по умолчанию `on`; `APP_TZ` по умолчанию `Asia/Jayapura`.
 
-- [ ] **Step 1: Тесты**
+- [x] **Step 1: Тесты**
 
 ```ts
 it('migrate создаёт все таблицы и идемпотентна', async () => {
@@ -133,10 +133,10 @@ it('loadConfig: модели по умолчанию и переопределе
 })
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/db.test.ts tests/config.test.ts`. Ожидается FAIL.**
-- [ ] **Step 3: Создать каркас в `~/Documents/korean-threads-app/` (Next.js + TS + Vitest + Postgres-драйвер + PGlite для тестов), реализовать `openDb`, `migrate`, `loadConfig`, типы.** `.gitignore`: `node_modules`, `.next`, `data/`, `backups/`, `*.db`, `.env*` (кроме `.env.example`), `.vercel`. Скрипты `package.json`: `test`, `dev`, `build`, `start`.
-- [ ] **Step 4: Тесты проходят.**
-- [ ] **Step 5: `git init` в `korean-threads-app/`, коммит `chore: scaffold app, config and postgres schema` (до первого коммита — `gitleaks`).**
+- [x] **Step 2: Запустить `npx vitest run tests/db.test.ts tests/config.test.ts`. Ожидается FAIL.**
+- [x] **Step 3: Создать каркас в `~/Documents/korean-threads-app/` (Next.js + TS + Vitest + Postgres-драйвер + PGlite для тестов), реализовать `openDb`, `migrate`, `loadConfig`, типы.** `.gitignore`: `node_modules`, `.next`, `data/`, `backups/`, `*.db`, `.env*` (кроме `.env.example`), `.vercel`. Скрипты `package.json`: `test`, `dev`, `build`, `start`.
+- [x] **Step 4: Тесты проходят.**
+- [x] **Step 5: `git init` в `korean-threads-app/`, коммит `chore: scaffold app, config and postgres schema` (до первого коммита — `gitleaks`).**
 
 ---
 
