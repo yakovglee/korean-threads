@@ -208,13 +208,13 @@ export function retrievability(s: ItemState, now: number): number // now в мс
 export function applyEvent(s: ItemState, ev: MemEvent, now: number): ItemState
 export function priority(item: Item, s: ItemState, now: number): number // (1 - R) * LEVEL_WEIGHT[level]
 export function seedItemState(db: Database, now: number): number
-export function getState(db: Database, itemId: string, now: number): ItemState // для отсутствующего (5–6급) создаёт {stability 0, isNew true}
+export function getState(db: Database, itemId: string): ItemState // без now (решение 15.11.2026); для отсутствующего (5–6급) возвращает {stability 0, isNew true}, в базу не пишет
 export function saveState(db: Database, s: ItemState): void
 ```
 
 Правила (из спеки: касания ослабляют, верные проверки укрепляют, время ослабляет; `viewed` без касания — выбор плана): `tap`: `stability = max(MIN_DAYS, stability × TAP_FACTOR)`, `isNew=false`, `tapCount+1`; `check_right`: `min(MAX_DAYS, max(CHECK_RIGHT_FLOOR_DAYS, stability) × 2)`, `isNew=false`; `check_wrong`: `max(MIN_DAYS, stability × 0.4)`, `isNew=false`; `viewed`: только для `!isNew`, `min(MAX_DAYS, stability × 1.15)`, для новых слов ничего. Старт: 1–2급 — `stability 60, isNew false`; 3급 — `stability 4, isNew false`; 4급 — `stability 0, isNew true`; 5–6급 строк нет.
 
-- [ ] **Step 1: Тесты**
+- [x] **Step 1: Тесты**
 
 ```ts
 const s = (o = {}) => ({ itemId: 'v:1', stabilityDays: 4, lastEventAt: 0, isNew: false, tapCount: 0, ...o })
@@ -228,10 +228,10 @@ it('tap по новому слову: isNew=false, stability 0.5', () => expect(
 it('seedItemState: 1–2급 60, 3급 4, 4급 новое, 5–6급без строки', () => { /* по одному item каждого уровня */ })
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/memory.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать функции выше.**
-- [ ] **Step 4: Тесты проходят.**
-- [ ] **Step 5: Commit `feat: forgetting model and seed state`.**
+- [x] **Step 2: Запустить `npx vitest run tests/memory.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать функции выше.**
+- [x] **Step 4: Тесты проходят.**
+- [x] **Step 5: Commit `feat: forgetting model and seed state`.**
 
 ---
 
@@ -670,7 +670,7 @@ export function handleProgress(d: Deps): { perLevel: { level: 1 | 2 | 3 | 4; tot
 ```ts
 it('двойной tap за 2 секунды считается один раз', () => {
   handleEvent(d, { itemId: 'v:1', type: 'tap' }); const r = handleEvent(d, { itemId: 'v:1', type: 'tap' })
-  expect(r.deduped).toBe(true); expect(getState(d.db, 'v:1', d.now()).tapCount).toBe(1)
+  expect(r.deduped).toBe(true); expect((await getState(d.db, 'v:1')).tapCount).toBe(1)
 })
 it('tap через 6 секунд считается снова', () => {})
 it('чат: пустое сообщение → 400, llm не вызван', async () => {})
