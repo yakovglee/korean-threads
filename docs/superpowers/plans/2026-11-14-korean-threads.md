@@ -253,12 +253,12 @@ export interface LlmClient {
   vision(args: { imagePng: Buffer; prompt: string; maxTokens?: number }): Promise<{ text: string; usage: Usage }>  // роль vision
   embed(texts: string[]): Promise<number[][]>                                                                      // роль embed, пакеты до 64
 }
-export function openRouterClient(cfg: Config, fetchImpl?: typeof fetch): LlmClient
+export function openRouterClient(cfg: Config, fetchImpl?: typeof fetch, opts?: { retryDelayMs?: number; timeoutMs?: number }): LlmClient
 ```
 
 `json`: сначала `response_format: json_schema` со `strict: true`; если эндпоинт отвечает ошибкой «не поддерживается», повтор с `json_object` и схемой в промпте; ответ парсится, невалидный JSON → `LlmError`. Заголовок `Authorization: Bearer <OPENROUTER_API_KEY>`; без ключа `LlmError('OPENROUTER_API_KEY не задан')`. Повтор 2 раза при 429 и 5xx с паузой.
 
-- [ ] **Step 1: Тесты (фейковый `fetchImpl`)**
+- [x] **Step 1: Тесты (фейковый `fetchImpl`)**
 
 ```ts
 it('json отправляет json_schema и разбирает ответ', async () => { /* тело запроса: response_format.type==='json_schema', model==='anthropic/claude-sonnet-5.5' */ })
@@ -269,10 +269,10 @@ it('embed режет на пакеты по 64 и склеивает резул�
 it('429 повторяется, затем LlmError со status', async () => {})
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/llm.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать на `fetch`. Формат эмбеддингов сверить с документацией OpenRouter (`ctx7`).** `scripts/check-models.ts` читает `GET https://openrouter.ai/api/v1/models`, проверяет, что все id из `Config.models` существуют, у `vision` есть вход `image`, и печатает цены за миллион токенов.
-- [ ] **Step 4: Тесты проходят; `npx tsx scripts/check-models.ts` с реальным ключом печатает «все модели найдены».**
-- [ ] **Step 5: Commit `feat: openrouter client`.**
+- [x] **Step 2: Запустить `npx vitest run tests/llm.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать на `fetch`. Формат эмбеддингов сверить с документацией OpenRouter (`ctx7`).** `scripts/check-models.ts` читает `GET https://openrouter.ai/api/v1/models`, проверяет, что все id из `Config.models` существуют, у `vision` есть вход `image`, и печатает цены за миллион токенов.
+- [x] **Step 4: Тесты проходят; `npx tsx scripts/check-models.ts` с реальным ключом печатает «все модели найдены».**
+- [x] **Step 5: Commit `feat: openrouter client`.**
 
 ---
 
