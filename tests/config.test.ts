@@ -41,4 +41,10 @@ describe("loadConfig", () => {
   it('databaseUrl "" без DATABASE_URL', () => {
     expect(loadConfig({}).databaseUrl).toBe("");
   });
+
+  it("krdictApiKey: undefined без KRDICT_API_KEY и при пустых пробелах, иначе значение без пробелов по краям", () => {
+    expect(loadConfig({}).krdictApiKey).toBeUndefined();
+    expect(loadConfig({ KRDICT_API_KEY: "   " }).krdictApiKey).toBeUndefined();
+    expect(loadConfig({ KRDICT_API_KEY: " abc " }).krdictApiKey).toBe("abc");
+  });
 });

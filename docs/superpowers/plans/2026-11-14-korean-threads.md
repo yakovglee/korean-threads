@@ -386,7 +386,7 @@ it('NFD-запрос находит NFC-текст', async () => {})
 
 **Files:**
 - Create: `src/lib/krdict.ts`, `src/lib/ingest/glosses.ts`, `scripts/ingest-glosses.ts`
-- Test: `tests/krdict.test.ts`, `tests/glosses.test.ts`, `tests/fixtures/krdict-가게.xml`
+- Test: `tests/krdict.test.ts`, `tests/glosses.test.ts`, `tests/fixtures/krdict/*.xml`
 
 **Interfaces:**
 - Consumes: `Item`, `item_notes`, `lemma_cache` (Task 1), `LlmClient` (Task 4), `splitHomograph` (Task 2).
@@ -400,8 +400,8 @@ it('NFD-запрос находит NFC-текст', async () => {})
 
 **Блокер владельца:** нужен `KRDICT_API_KEY` (бесплатная регистрация открытого API 한국어기초사전). Без него скрипт печатает инструкцию и завершается. Перед запуском на всех словах прочитать условия использования API и данных и убедиться, что личное локальное использование допустимо.
 
-- [ ] **Step 1: Получить один настоящий ответ API по слову «가게» с переводами на русский и сохранить как `tests/fixtures/krdict-가게.xml`.** Код языка «русский» и имена параметров взять из документации API, не по памяти.
-- [ ] **Step 2: Тесты**
+- [x] **Step 1: Получить один настоящий ответ API по слову «가게» с переводами на русский и сохранить как `tests/fixtures/krdict-가게.xml`.** Код языка «русский» и имена параметров взять из документации API, не по памяти.
+- [x] **Step 2: Тесты**
 
 ```ts
 it('fetchKrdictEntries разбирает фикстуру', async () => {
@@ -416,8 +416,8 @@ it('lookupLemma использует кэш', async () => {})
 it('lookupLemma: нет в словаре и ИИ не дал значения → { glossRu: null, source: null }, кэш пуст', async () => {})
 ```
 
-- [ ] **Step 3: Запустить `npx vitest run tests/krdict.test.ts tests/glosses.test.ts`. FAIL.**
-- [ ] **Step 4: Реализовать.** `delayMs` по умолчанию 150; ошибки HTTP повторять 3 раза, затем слово считается `missing`. Скрипт принимает `--limit N`.
+- [x] **Step 3: Запустить `npx vitest run tests/krdict.test.ts tests/glosses.test.ts`. FAIL.**
+- [x] **Step 4: Реализовать.** `delayMs` по умолчанию 150; ошибки HTTP повторять 3 раза, затем слово считается `missing`. Скрипт принимает `--limit N`.
 - [ ] **Step 5: Тесты проходят; прогнать `--limit 30`, показать владельцу долю слов с русским переводом; затем все 5690 слов 1–4급; затем `fillMissingGlossesWithAi`.**
 - [ ] **Step 6: Commit `feat: russian glosses from krdict`.**
 

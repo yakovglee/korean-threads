@@ -1,0 +1,1523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<channel>
+	<title>한국어 기초사전 개발 지원(Open API) - 사전 검색</title>
+	<link>https://krdict.korean.go.kr</link>
+	<description>한국어 기초사전 개발 지원(Open API) - 사전 검색 결과</description>
+	<lastBuildDate>20261116020725</lastBuildDate>
+	<total>7</total>
+	<start>1</start>
+	<num>100</num>
+	
+	
+	
+	<item>
+		
+		
+		<target_code>74950</target_code>
+		<word>-배</word>
+		<sup_no>0</sup_no>
+		
+		<origin>輩</origin>
+		
+		
+		
+		<word_grade>고급</word_grade>
+		
+		<pos>접사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=74950</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>‘무리를 이룬 사람’의 뜻을 더하는 접미사.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[]]></trans_word>
+				<trans_dfn><![CDATA[Суффикс со значением "человек, принадлежащий к данной группе".]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>20211</target_code>
+		<word>배</word>
+		<sup_no>1</sup_no>
+		
+		
+		<pronunciation>배</pronunciation>
+		
+		
+		<word_grade>초급</word_grade>
+		
+		<pos>명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=20211</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>사람이나 동물의 몸에서, 가슴 아래에서 다리 위까지의 부분.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[живот; утроба; брюхо; желудок]]></trans_word>
+				<trans_dfn><![CDATA[Часть тела человека или животного между нижней частью груди и верхней частью ног.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>2</sense_order>
+			<definition>사람이나 동물의 몸에서 음식을 소화시키는 위장, 창자 등의 내장이 있는 곳.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[живот; утроба; брюхо; желудок]]></trans_word>
+				<trans_dfn><![CDATA[Часть тела человека или животного, где расположены такие органы пищеварения, как желудок, кишечник и т.п.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>3</sense_order>
+			<definition>여성의 몸에서 아이가 들어서는 부분.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[утроба]]></trans_word>
+				<trans_dfn><![CDATA[Часть женского тела, где находится ребенок (во время беременности).]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>4</sense_order>
+			<definition>물건의 가운데 부분.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[середина]]></trans_word>
+				<trans_dfn><![CDATA[Средняя часть предметов.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>5</sense_order>
+			<definition>짐승이 새끼나 알을 낳는 횟수를 세는 단위.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[помёт]]></trans_word>
+				<trans_dfn><![CDATA[Единица подсчёта количества приплодов живородящих или откладывающих яйца животных.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>78550</target_code>
+		<word>배-</word>
+		<sup_no>1</sup_no>
+		
+		
+		
+		<pos>품사 없음</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=78550</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>(배고, 배는데, 배어, 배어서, 배니, 배면, 밴, 배는, 밸, 뱁니다, 배었다, 배어라)→ 배다1, 배다2</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>29729</target_code>
+		<word>배</word>
+		<sup_no>2</sup_no>
+		
+		
+		<pronunciation>배</pronunciation>
+		
+		
+		<word_grade>초급</word_grade>
+		
+		<pos>명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=29729</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>사람이나 물건을 싣고 물 위를 다니는 교통수단.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[лодка; судно; пароход]]></trans_word>
+				<trans_dfn><![CDATA[Транспортное средство, перевозящее людей или грузы по воде.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>31454</target_code>
+		<word>배</word>
+		<sup_no>3</sup_no>
+		
+		
+		<pronunciation>배</pronunciation>
+		
+		
+		<word_grade>초급</word_grade>
+		
+		<pos>명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=31454</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>껍질은 누렇고 속은 희며 수분이 많고 단맛이 나는, 가을에 나는 둥근 과일.</definition>
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[груша]]></trans_word>
+				<trans_dfn><![CDATA[Плод круглой формы с жёлтой кожурой и белой мякотью, очень сочный и сладкий на вкус, созревающий осенью.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>15901</target_code>
+		<word>배</word>
+		<sup_no>4</sup_no>
+		
+		<origin>倍</origin>
+		
+		
+		<pronunciation>배ː</pronunciation>
+		
+		
+		<word_grade>고급</word_grade>
+		
+		<pos>명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=15901</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>어떤 수나 양을 두 번 합한 만큼.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[два раза; дважды; двойное количество; вдвойне]]></trans_word>
+				<trans_dfn><![CDATA[Вдвое больше какого-нибудь количества или объёма.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>2</sense_order>
+			<definition>어떤 수량을 몇 번 합친 수량을 나타내는 단위.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[в несколько раз]]></trans_word>
+				<trans_dfn><![CDATA[Счётное слово, указывающее, во сколько раз увеличилось то или иное количество. ]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	<item>
+		
+		
+		<target_code>58079</target_code>
+		<word>배</word>
+		<sup_no>5</sup_no>
+		
+		<origin>杯</origin>
+		
+		
+		<pronunciation>배</pronunciation>
+		
+		
+		<word_grade>초급</word_grade>
+		
+		<pos>의존 명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=58079</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>술이나 음료를 담은 잔을 세는 단위.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[]]></trans_word>
+				<trans_dfn><![CDATA[Единица исчисления полных бокалов спиртного или др. напитков. ]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		<sense>
+			<sense_order>2</sense_order>
+			<definition>운동 경기나 대회 등에서 우승한 팀이나 사람에게 주는 트로피.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[]]></trans_word>
+				<trans_dfn><![CDATA[Трофей, вручаемый выигравшей во время спортивных соревнований, состязаний и т. п. группе или человеку.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	
+	
+</channel>
+
+

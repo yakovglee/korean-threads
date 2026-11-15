@@ -2,6 +2,7 @@ export type ModelRole = 'write' | 'light' | 'vision' | 'verify' | 'embed'
 
 export interface Config {
   openrouterKey: string | undefined
+  krdictApiKey: string | undefined
   analyzerUrl: string
   analyzerSecret: string | undefined
   models: Record<ModelRole, string>
@@ -34,6 +35,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 
   return {
     openrouterKey: get('OPENROUTER_API_KEY'),
+    krdictApiKey: get('KRDICT_API_KEY'),
     analyzerUrl: get('ANALYZER_URL') ?? DEFAULT_ANALYZER_URL,
     analyzerSecret: get('ANALYZER_SECRET'),
     models: {

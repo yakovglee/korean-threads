@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<channel>
+	<title>한국어 기초사전 개발 지원(Open API) - 사전 검색</title>
+	<link>https://krdict.korean.go.kr</link>
+	<description>한국어 기초사전 개발 지원(Open API) - 사전 검색 결과</description>
+	<lastBuildDate>20261116020726</lastBuildDate>
+	<total>1</total>
+	<start>1</start>
+	<num>100</num>
+	
+	
+	
+	<item>
+		
+		
+		<target_code>17287</target_code>
+		<word>가게</word>
+		<sup_no>0</sup_no>
+		
+		
+		<pronunciation>가ː게</pronunciation>
+		
+		
+		<word_grade>초급</word_grade>
+		
+		<pos>명사</pos>
+		<link>https://krdict.korean.go.kr/kor/dicSearch/SearchView?ParaWordNo=17287</link>
+		
+		
+		<sense>
+			<sense_order>1</sense_order>
+			<definition>작은 규모로 물건을 펼쳐 놓고 파는 집.</definition>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<translation>
+				<trans_lang>
+				
+				
+				
+				
+				
+				러시아어
+				
+				
+				
+				
+				
+				
+				
+				</trans_lang>
+				<trans_word><![CDATA[магазин; лавка; ларек]]></trans_word>
+				<trans_dfn><![CDATA[Здание или помещение для мелкой розничной торговли.]]></trans_dfn>
+			</translation>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		</sense>
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+	</item>
+	
+	
+	
+</channel>
+
+
