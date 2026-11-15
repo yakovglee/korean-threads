@@ -3,8 +3,9 @@
 // Соглашение проекта:
 // - В params передаются только примитивы: string, number, boolean, null.
 //   Время в миллисекундах помещается в number, bigint не нужен.
-// - JSON передаётся строкой с приведением ::jsonb:
-//   db.query('insert into checks (id, body_json) values ($1, $2::jsonb)', [id, JSON.stringify(body)])
+// - JSON передаётся строкой с приведением ::text::jsonb (не ::jsonb):
+//   db.query('insert into checks (id, body_json) values ($1, $2::text::jsonb)', [id, JSON.stringify(body)])
+//   Почему: postgres.js кодирует строку второй раз, и ::jsonb сохраняет JSON-строку, а ::text::jsonb разбирает текст как JSON.
 // - int8 (bigint) читается как number.
 // - query без params идёт простым протоколом и допускает несколько операторов (миграции).
 //   Результат запроса с несколькими операторами не использовать: у postgres.js и PGlite он разный.

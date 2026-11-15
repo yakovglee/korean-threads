@@ -40,10 +40,23 @@ describe('слой БД', () => {
   it('jsonb-колонка возвращается объектом', async () => {
     const db = await openTestDb()
     const body = { stem: '다음 글을 읽으십시오', options: ['가', '나'] }
-    await db.query('insert into checks (id, source, body_json, created_at) values ($1, $2, $3::jsonb, $4)', ['c-json-1', 'exam', JSON.stringify(body), 1763190000000])
-    const rows = await db.query<{ body_json: unknown }>('select body_json from checks where id = $1', ['c-json-1'])
+    await db.query('insert into checks (id, source, body_json, created_at) values ($1, $2, $3::text::jsonb, $4)', ['c-json-1', 'exam', JSON.stringify(body), 1763190000000])
+    const rows = await db.query<{ body_json: unknown; is_object: boolean }>(
+      "select body_json, jsonb_typeof(body_json) = 'object' as is_object from checks where id = $1", ['c-json-1'])
+    expect(rows[0]?.is_object).toBe(true)
     expect(typeof rows[0]?.body_json).toBe('object')
     expect(rows[0]?.body_json).toEqual(body)
+  })
+
+  it('jsonb-массив в posts.sources_json возвращается массивом', async () => {
+    const db = await openTestDb()
+    const sources = [{ doc: 'topik-4', page: 12 }, { doc: 'topik-4', page: 13 }]
+    await db.query('insert into posts (id, thread_id, body_json, sources_json) values ($1, $2, $3::text::jsonb, $4::text::jsonb)', ['p-src-1', 't-src-1', JSON.stringify({ stem: '가' }), JSON.stringify(sources)])
+    const rows = await db.query<{ sources_json: unknown; is_array: boolean }>(
+      "select sources_json, jsonb_typeof(sources_json) = 'array' as is_array from posts where id = $1", ['p-src-1'])
+    expect(rows[0]?.is_array).toBe(true)
+    expect(Array.isArray(rows[0]?.sources_json)).toBe(true)
+    expect(rows[0]?.sources_json).toEqual(sources)
   })
 
   it('item_state: значения по умолчанию', async () => {
