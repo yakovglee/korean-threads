@@ -1,0 +1,80 @@
+{
+  "text": "먹을 수 있어요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "먹",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "먹",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "을",
+        "pos": "ETM",
+        "pos_trans": "관형형 전성 어미",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "을",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "수",
+        "pos": "NNB",
+        "pos_trans": "의존 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "수",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "있",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "있",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "어요",
+        "pos": "EF",
+        "pos_trans": "종결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어요",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

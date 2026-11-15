@@ -1,0 +1,166 @@
+{
+  "text": "밥을 먹고 학교에 갈 수 있다",
+  "tokens": [
+    {
+      "word": {
+        "surface": "밥",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "밥",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "을",
+        "pos": "JKO",
+        "pos_trans": "목적격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "을",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "먹",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "먹",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "고",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "고",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "학교",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "학교",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "에",
+        "pos": "JKB",
+        "pos_trans": "부사격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "에",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "갈",
+        "pos": "VV+ETM",
+        "pos_trans": "동사+관형형 전성 어미",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "갈",
+        "entry_type": "Inflect",
+        "first_pos": "VV",
+        "last_pos": "ETM",
+        "expression": "가/VV/*+ᆯ/ETM/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "가",
+          "pos": "VV",
+          "pos_trans": "동사"
+        },
+        {
+          "lemma": "ᆯ",
+          "pos": "ETM",
+          "pos_trans": "관형형 전성 어미"
+        }
+      ]
+    },
+    {
+      "word": {
+        "surface": "수",
+        "pos": "NNB",
+        "pos_trans": "의존 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "수",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "있",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "있",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "다",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "다",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "text": "이 책이 좋아요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "이",
+        "pos": "MM",
+        "pos_trans": "관형사",
+        "semantic_class": "~명사",
+        "has_final_consonant": false,
+        "reading": "이",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "책",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "책",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "이",
+        "pos": "JKS",
+        "pos_trans": "주격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "이",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "좋",
+        "pos": "VA",
+        "pos_trans": "형용사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "좋",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "아요",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "아요",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

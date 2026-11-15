@@ -1,0 +1,65 @@
+{
+  "text": "쉬고 싶어요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "쉬",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "쉬",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "고",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "고",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "싶",
+        "pos": "VX",
+        "pos_trans": "보조 용언",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "싶",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "어요",
+        "pos": "EF",
+        "pos_trans": "종결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어요",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "text": "재미있습니다",
+  "tokens": [
+    {
+      "word": {
+        "surface": "재미있",
+        "pos": "VA",
+        "pos_trans": "형용사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "재미있",
+        "entry_type": "Inflect",
+        "first_pos": "VA",
+        "last_pos": "VA",
+        "expression": "재밌/VA/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "재밌",
+          "pos": "VA",
+          "pos_trans": "형용사"
+        }
+      ]
+    },
+    {
+      "word": {
+        "surface": "습니다",
+        "pos": "EF",
+        "pos_trans": "종결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "습니다",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

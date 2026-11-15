@@ -1,0 +1,110 @@
+{
+  "text": "친구하고 같이 먹었어요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "친구",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "친구",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "하",
+        "pos": "XSV",
+        "pos_trans": "동사 파생 접미사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "하",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "고",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "고",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "같이",
+        "pos": "MAG",
+        "pos_trans": "일반 부사",
+        "semantic_class": "성분부사/양태부사",
+        "has_final_consonant": false,
+        "reading": "같이",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "먹",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "먹",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "었",
+        "pos": "EP",
+        "pos_trans": "선어말 어미",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "었",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "어요",
+        "pos": "EF",
+        "pos_trans": "종결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어요",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

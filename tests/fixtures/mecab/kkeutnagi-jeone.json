@@ -1,0 +1,172 @@
+{
+  "text": "수업이 끝나기 전에 물어봤어요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "수업",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "수업",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "이",
+        "pos": "JKS",
+        "pos_trans": "주격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "이",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "끝",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "끝",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "나기",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "나기",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "전",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "전",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "에",
+        "pos": "JKB",
+        "pos_trans": "부사격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "에",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "물",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "물",
+        "entry_type": "Inflect",
+        "first_pos": "VV",
+        "last_pos": "VV",
+        "expression": "묻/VV/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "묻",
+          "pos": "VV",
+          "pos_trans": "동사"
+        }
+      ]
+    },
+    {
+      "word": {
+        "surface": "어",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "봤",
+        "pos": "VX+EP",
+        "pos_trans": "보조 용언+선어말 어미",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "봤",
+        "entry_type": "Inflect",
+        "first_pos": "VX",
+        "last_pos": "EP",
+        "expression": "보/VX/*+았/EP/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "보",
+          "pos": "VX",
+          "pos_trans": "보조 용언"
+        },
+        {
+          "lemma": "았",
+          "pos": "EP",
+          "pos_trans": "선어말 어미"
+        }
+      ]
+    },
+    {
+      "word": {
+        "surface": "어요",
+        "pos": "EF",
+        "pos_trans": "종결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어요",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "text": "공부해야 돼요",
+  "tokens": [
+    {
+      "word": {
+        "surface": "공부",
+        "pos": "NNG",
+        "pos_trans": "일반 명사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "공부",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "해야",
+        "pos": "XSV+EC",
+        "pos_trans": "동사 파생 접미사+연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "해야",
+        "entry_type": "Inflect",
+        "first_pos": "XSV",
+        "last_pos": "EC",
+        "expression": "하/XSV/*+아야/EC/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "하",
+          "pos": "XSV",
+          "pos_trans": "동사 파생 접미사"
+        },
+        {
+          "lemma": "아야",
+          "pos": "EC",
+          "pos_trans": "연결 어미"
+        }
+      ]
+    },
+    {
+      "word": {
+        "surface": "돼요",
+        "pos": "VV+EC",
+        "pos_trans": "동사+연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "돼요",
+        "entry_type": "Inflect",
+        "first_pos": "VV",
+        "last_pos": "EC",
+        "expression": "되/VV/*+어요/EC/*"
+      },
+      "parsed_expression": [
+        {
+          "lemma": "되",
+          "pos": "VV",
+          "pos_trans": "동사"
+        },
+        {
+          "lemma": "어요",
+          "pos": "EC",
+          "pos_trans": "연결 어미"
+        }
+      ]
+    }
+  ]
+}

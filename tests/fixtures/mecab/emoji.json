@@ -1,0 +1,110 @@
+{
+  "text": "채영이 😂 ㅠㅠ 웃었어",
+  "tokens": [
+    {
+      "word": {
+        "surface": "채영",
+        "pos": "NNP",
+        "pos_trans": "고유 명사",
+        "semantic_class": "인명",
+        "has_final_consonant": true,
+        "reading": "채영",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "이",
+        "pos": "JKS",
+        "pos_trans": "주격 조사",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "이",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "😂",
+        "pos": "SY",
+        "pos_trans": "기타 기호",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "*",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "ㅠㅠ",
+        "pos": "UNKNOWN",
+        "pos_trans": "UNKNOWN",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "*",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "웃",
+        "pos": "VV",
+        "pos_trans": "동사",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "웃",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "었",
+        "pos": "EP",
+        "pos_trans": "선어말 어미",
+        "semantic_class": "*",
+        "has_final_consonant": true,
+        "reading": "었",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    },
+    {
+      "word": {
+        "surface": "어",
+        "pos": "EC",
+        "pos_trans": "연결 어미",
+        "semantic_class": "*",
+        "has_final_consonant": false,
+        "reading": "어",
+        "entry_type": "*",
+        "first_pos": "*",
+        "last_pos": "*",
+        "expression": "*"
+      },
+      "parsed_expression": null
+    }
+  ]
+}

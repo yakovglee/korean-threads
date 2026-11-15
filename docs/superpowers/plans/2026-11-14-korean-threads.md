@@ -307,8 +307,8 @@ export function analyzeToSegments(db: Database, text: string, baseUrl: string): 
 
 **Подготовка сервиса.** Системный `python3` здесь 3.14, а закреплённые в `requirements.txt` пакеты (`pydantic-core 2.33.2`, `uvloop 0.21`, `mecab-ko 1.0.2`) могут на нём не собраться. `scripts/analyzer.sh` ищет `python3.12` или `python3.13`; иначе печатает подсказку `brew install python@3.12`. Затем: клон `https://github.com/yakovglee/mecab-ko-fastapi.git` в `services/`, venv, `pip install -r requirements.txt`, `uvicorn app:app --host 127.0.0.1 --port 8000`. Заметки по коду сервиса: `Tagger()` создаётся на каждый запрос (приемлемо), пустой результат даёт 404, лицензия GPL-2.0 (процесс отдельный, для личного использования это допустимо).
 
-- [ ] **Step 1: Поднять сервис командой `bash scripts/analyzer.sh`, проверить `curl -s localhost:8000 -X POST -H 'content-type: application/json' -d '{"text":"비가 오거든요"}'` и записать реальные ответы для фикстур `tests/fixtures/mecab/`: `비가 오거든요`, `먹을 수 있어요`, `가 보세요`, `공부합니다`, `가니까`, `학교에 가요`, `채영이 😂 ㅠㅠ 웃었어`.** Если сервис не запускается, остановиться и сообщить владельцу.
-- [ ] **Step 2: Тесты (на фикстурах, без сети)**
+- [x] **Step 1: Поднять сервис командой `bash scripts/analyzer.sh`, проверить `curl -s localhost:8000 -X POST -H 'content-type: application/json' -d '{"text":"비가 오거든요"}'` и записать реальные ответы для фикстур `tests/fixtures/mecab/`: `비가 오거든요`, `먹을 수 있어요`, `가 보세요`, `공부합니다`, `가니까`, `학교에 가요`, `채영이 😂 ㅠㅠ 웃었어`.** Если сервис не запускается, остановиться и сообщить владельцу.
+- [x] **Step 2: Тесты (на фикстурах, без сети)**
 
 ```ts
 it('toMorphs: глаголы получают 다, ᄇ нормализуется', () => { /* 입니다 → ['이다','ㅂ니다'] */ })
@@ -328,10 +328,10 @@ it('grammarMatches', () => {
 it('analyze: 404 → [], 500 и сетевая ошибка → AnalyzerError', async () => {})
 ```
 
-- [ ] **Step 3: Запустить `npx vitest run tests/analyzer.test.ts`. FAIL.**
-- [ ] **Step 4: Реализовать.**
-- [ ] **Step 5: Тесты проходят. Проверка на реальных данных: `analyzeToSegments` по трём фразам из `GRAMMAR_MAIN.md` и вывод владельцу, какие items нашлись.**
-- [ ] **Step 6: Commit `feat: morphological analysis via mecab-ko-fastapi`.**
+- [x] **Step 3: Запустить `npx vitest run tests/analyzer.test.ts`. FAIL.**
+- [x] **Step 4: Реализовать.**
+- [x] **Step 5: Тесты проходят. Проверка на реальных данных: `analyzeToSegments` по трём фразам из `GRAMMAR_MAIN.md` и вывод владельцу, какие items нашлись.**
+- [x] **Step 6: Commit `feat: morphological analysis via mecab-ko-fastapi`.**
 
 ---
 
