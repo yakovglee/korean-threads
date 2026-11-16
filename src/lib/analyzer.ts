@@ -27,6 +27,11 @@ type PosGroup = 'noun' | 'verb' | 'adj' | 'adv' | 'det' | 'interj' | 'num' | 'pr
 const DEFAULT_TIMEOUT_MS = 30000
 // у этих тегов лемма — основа плюс «다»
 const VERB_TAGS = new Set(['VV', 'VA', 'VX', 'VCP', 'VCN', 'XSV', 'XSA'])
+// знаки препинания: многословная конструкция через них не идёт
+const BREAK_TAGS = new Set(['SF', 'SE', 'SC', 'SSO', 'SSC', 'SY'])
+// разрыв в ленте морфем всего текста (см. tapeOf). Пробела нет ни в одном слове формы, поэтому цепочка с разрывом
+// не совпадает ни с одним словом; тег SF — не частица и не служебная морфема, её не пропускают и с ней не сцепляют.
+const BREAK: Morph = { lemma: ' ', pos: 'SF' }
 const POS_GROUPS = new Map<string, PosGroup>([
   ['NNG', 'noun'], ['NNB', 'noun'], ['NNBC', 'noun'],
   ['NR', 'num'], ['NP', 'pron'],
@@ -135,10 +140,14 @@ export function toMorphs(token: MecabToken): Morph[] {
   return alt === lemma ? [{ lemma, pos: token.pos }] : [{ lemma, pos: token.pos, alt }]
 }
 
+// Сегмент с разрывами: breaks — позиции в morphs, перед которыми стоит разрыв (позиция morphs.length — после последней морфемы).
+// Знак препинания в сегменте даёт разрыв на своём месте; сегмент без выравнивания — разрыв в позиции 0.
+interface Parsed { text: string; morphs: Morph[]; breaks: number[] }
+
 // Сегменты по пробелам (текст сегмента сохраняет знаки препинания); морфемы токенов раскладываются
 // по сегментам последовательным сопоставлением surface. Не стыкуется — сегмент без morphs, следующие
 // сегменты ищутся среди токенов заново. Исключений не бросает.
-export function segmentText(text: string, tokens: MecabToken[]): { text: string; morphs: Morph[] }[] {
+function parseSegments(text: string, tokens: MecabToken[]): Parsed[] {
   const segments = nfc(text).split(/\s+/).filter(s => s !== '')
   const surfaces = tokens.map(t => nfc(t.surface))
   let cursor = 0 // первый токен, который ещё не отдан сегментам
@@ -147,14 +156,23 @@ export function segmentText(text: string, tokens: MecabToken[]): { text: string;
     const span = locate(surfaces, seg, cursor, lost)
     if (span === null) {
       lost = true
-      return { text: seg, morphs: [] }
+      return { text: seg, morphs: [], breaks: [0] }
     }
     const [from, end] = span
     cursor = end
     lost = false
-    const morphs = tokens.slice(from, end).flatMap(toMorphs).filter(m => posGroup(m.pos) !== 'skip')
-    return { text: seg, morphs }
+    const morphs: Morph[] = []
+    const breaks: number[] = []
+    for (const t of tokens.slice(from, end)) {
+      if (BREAK_TAGS.has(headOf(t.pos))) breaks.push(morphs.length)
+      else morphs.push(...toMorphs(t).filter(m => posGroup(m.pos) !== 'skip'))
+    }
+    return { text: seg, morphs, breaks }
   })
+}
+
+export function segmentText(text: string, tokens: MecabToken[]): { text: string; morphs: Morph[] }[] {
+  return parseSegments(text, tokens).map(({ text, morphs }) => ({ text, morphs }))
 }
 
 export function posGroup(pos: string): PosGroup {
@@ -183,14 +201,24 @@ export function loadLexicon(db: Db): Promise<Lexicon> {
   return lex
 }
 
+// Незнакомая морфема сегмента: лемма и тег для выдачи; at — индекс морфемы в morphs (по нему analyzeFull снимает её по месту конструкции)
+interface Unlisted { lemma: string; pos: string; at: number }
+interface Resolved { itemIds: string[]; unlisted: Unlisted[] }
+
 // Морфемы сегмента → id найденных слов и конструкций (без повторов, по порядку) и незнакомые леммы
 export async function resolveMorphs(
   db: Db,
   morphs: Morph[],
 ): Promise<{ itemIds: string[]; unlisted: { lemma: string; pos: string }[] }> {
+  const r = await resolveIndexed(db, morphs)
+  return { itemIds: r.itemIds, unlisted: r.unlisted.map(({ lemma, pos }) => ({ lemma, pos })) }
+}
+
+// То же, что resolveMorphs, но у незнакомых морфем сохраняется индекс
+async function resolveIndexed(db: Db, morphs: Morph[]): Promise<Resolved> {
   const lex = await loadLexicon(db)
   const itemIds: string[] = []
-  const unlisted: { lemma: string; pos: string }[] = []
+  const unlisted: Unlisted[] = []
   const add = (id: string): void => {
     if (!itemIds.includes(id)) itemIds.push(id)
   }
@@ -215,15 +243,45 @@ export async function resolveMorphs(
     }
     const hit = bestVocab(lex, m, group)
     if (hit) add(hit.id)
-    else unlisted.push({ lemma: m.alt ?? m.lemma, pos: m.pos })
+    else unlisted.push({ lemma: m.alt ?? m.lemma, pos: m.pos, at: i })
   }
   return { itemIds, unlisted }
 }
 
-// Конструкция сопоставляется с морфемами: слова формы по порядку, между соседними словами не больше одной
-// частицы; однословная форма — только служебными морфемами
+export interface Span { start: number; end: number }
+
+// Все места, где конструкция совпала с цепочкой морфем: [start, end) по индексам morphs, end не включается.
+// Одно и то же место из разных форм или путей сопоставления возвращается один раз.
+export function grammarSpans(item: Item, morphs: Morph[]): Span[] {
+  return spansOfForms(formsOf(item), morphs, item.pos)
+}
+
+// Конструкция найдена в морфемах, если есть хотя бы одно место
 export function grammarMatches(item: Item, morphs: Morph[]): boolean {
-  return formsOf(item).some(f => formMatchesMorphs(f.words, morphs, item.pos))
+  return grammarSpans(item, morphs).length > 0
+}
+
+// Текст целиком: сегменты с id слов и конструкций и морфемы всего текста подряд, с разрывами (BREAK) на знаках
+// препинания и на сегментах без выравнивания. Так их видит grammarSpans: через разрыв конструкция не совпадает.
+export async function analyzeFull(
+  db: Db,
+  text: string,
+  baseUrl: string,
+  fetchImpl?: typeof fetch,
+  opts: { secret?: string; timeoutMs?: number } = {},
+): Promise<{ segments: Segment[]; morphs: Morph[] }> {
+  const tokens = await analyze(text, baseUrl, fetchImpl, opts)
+  const segs = parseSegments(text, tokens)
+  const out: Resolved[] = []
+  for (const seg of segs) out.push(await resolveIndexed(db, seg.morphs))
+  const tape = tapeOf(segs)
+  await addMultiwordIds(db, tape, out)
+  const segments: Segment[] = segs.map((seg, i) => ({
+    text: seg.text,
+    itemIds: out[i].itemIds,
+    unlisted: out[i].unlisted.map(({ lemma, pos }) => ({ lemma, pos })),
+  }))
+  return { segments, morphs: tape.morphs }
 }
 
 // Анализатор → сегменты → id слов и конструкций по каждому сегменту
@@ -234,13 +292,55 @@ export async function analyzeToSegments(
   fetchImpl?: typeof fetch,
   opts: { secret?: string; timeoutMs?: number } = {},
 ): Promise<Segment[]> {
-  const tokens = await analyze(text, baseUrl, fetchImpl, opts)
-  const out: Segment[] = []
-  for (const seg of segmentText(text, tokens)) {
-    const r = await resolveMorphs(db, seg.morphs)
-    out.push({ text: seg.text, itemIds: r.itemIds, unlisted: r.unlisted })
+  return (await analyzeFull(db, text, baseUrl, fetchImpl, opts)).segments
+}
+
+// Лента морфем всего текста: морфемы сегментов подряд, на месте разрыва — BREAK. owner и inSeg — сегмент и индекс
+// морфемы в нём; у BREAK оба −1.
+interface Tape { morphs: Morph[]; owner: number[]; inSeg: number[] }
+
+function tapeOf(segs: Parsed[]): Tape {
+  const tape: Tape = { morphs: [], owner: [], inSeg: [] }
+  const add = (m: Morph, owner: number, inSeg: number): void => {
+    tape.morphs.push(m)
+    tape.owner.push(owner)
+    tape.inSeg.push(inSeg)
   }
-  return out
+  segs.forEach((seg, i) => {
+    for (let j = 0; j <= seg.morphs.length; j++) {
+      // разрыв в начале ленты и подряд идущие разрывы не добавляются
+      const needBreak = seg.breaks.includes(j) && tape.morphs.length > 0 && tape.morphs[tape.morphs.length - 1] !== BREAK
+      if (needBreak) add(BREAK, -1, -1)
+      if (j < seg.morphs.length) add(seg.morphs[j], i, j)
+    }
+  })
+  return tape
+}
+
+// Многословные конструкции (форма из двух и более слов): места ищутся по ленте морфем всего текста, место не
+// переходит через разрыв. id дописывается в itemIds каждого сегмента, чьи морфемы попали в место. Однословные формы
+// в этом шаге не участвуют: служебные морфемы с ними разбирает resolveIndexed.
+// Порядок — по началу места, затем level и seq.
+// Морфемы места, которых нет в списках, снимаются из unlisted этих сегментов; itemIds при этом не меняются.
+async function addMultiwordIds(db: Db, tape: Tape, out: Resolved[]): Promise<void> {
+  if (tape.morphs.length === 0) return
+  const lex = await loadLexicon(db)
+  const hits: { item: Item; span: Span }[] = []
+  for (const { item, forms } of lex.grammar) {
+    const multi = forms.filter(f => f.words.length >= 2)
+    if (multi.length === 0) continue
+    for (const span of spansOfForms(multi, tape.morphs, item.pos)) hits.push({ item, span })
+  }
+  hits.sort((a, b) => a.span.start - b.span.start || byLevelSeq(a.item, b.item))
+  for (const { item, span } of hits) {
+    for (const i of new Set(tape.owner.slice(span.start, span.end))) {
+      if (!out[i].itemIds.includes(item.id)) out[i].itemIds.push(item.id)
+    }
+    for (let g = span.start; g < span.end; g++) {
+      const r = out[tape.owner[g]]
+      r.unlisted = r.unlisted.filter(u => u.at !== tape.inSeg[g])
+    }
+  }
 }
 
 // Токен с индекса cursor (при сбое — с любого индекса вперёд) начинает сегмент: [начало, конец) или null
@@ -483,28 +583,34 @@ function combinations<T>(lists: T[][]): T[][] {
   return lists.reduce<T[][]>((acc, list) => acc.flatMap(prefix => list.map(x => [...prefix, x])), [[]])
 }
 
+// Места совпадения всех форм конструкции с морфемами, без повторов, по порядку начала.
 // Слова формы по порядку, каждое — цепочка из 1–3 морфем. Первое слово может начинаться с любой морфемы;
-// между соседними словами можно пропустить одну частицу.
-function formMatchesMorphs(words: string[], morphs: Morph[], itemPos: string): boolean {
-  const single = words.length === 1
-  const from = (wi: number, start: number): boolean => {
-    for (let n = 1; n <= 3 && start + n <= morphs.length; n++) {
-      const chain = morphs.slice(start, start + n)
-      if (single && !chain.every(isFunc)) continue
-      // тег последней морфемы цепочки должен подходить классу конструкции
-      if (!classCompatible(itemPos, chain[chain.length - 1].pos)) continue
-      if (!chainMatchesWord(words[wi], chain)) continue
-      const next = start + n
-      if (wi === words.length - 1) return true
-      if (from(wi + 1, next)) return true
-      if (next < morphs.length && isParticle(morphs[next]) && from(wi + 1, next + 1)) return true
+// между соседними словами можно пропустить одну частицу; однословная форма — только служебными морфемами.
+// Перебираются все пути: место — [первая морфема первого слова, конец последнего слова). Для последнего слова
+// берётся самая короткая подходящая цепочка («있다» + «다» EC даёт то же место, что одно «있다»).
+function spansOfForms(forms: Form[], morphs: Morph[], itemPos: string): Span[] {
+  const found = new Map<string, Span>()
+  for (const { words } of forms) {
+    const single = words.length === 1
+    const walk = (wi: number, start: number, first: number): void => {
+      for (let n = 1; n <= 3 && start + n <= morphs.length; n++) {
+        const chain = morphs.slice(start, start + n)
+        if (single && !chain.every(isFunc)) continue
+        // тег последней морфемы цепочки должен подходить классу конструкции
+        if (!classCompatible(itemPos, chain[chain.length - 1].pos)) continue
+        if (!chainMatchesWord(words[wi], chain)) continue
+        const next = start + n
+        if (wi === words.length - 1) {
+          found.set(`${first}:${next}`, { start: first, end: next })
+          break
+        }
+        walk(wi + 1, next, first)
+        if (next < morphs.length && isParticle(morphs[next])) walk(wi + 1, next + 1, first)
+      }
     }
-    return false
+    for (let s = 0; s < morphs.length; s++) walk(0, s, s)
   }
-  for (let s = 0; s < morphs.length; s++) {
-    if (from(0, s)) return true
-  }
-  return false
+  return [...found.values()].sort((a, b) => a.start - b.start || a.end - b.end)
 }
 
 // Разбор сырого токена ответа сервиса: поля проверяются, неизвестная форма — AnalyzerError

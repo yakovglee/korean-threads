@@ -481,7 +481,7 @@ export function loadCheck(db: Database, id: string): Check | null
 `validatePost`, режим `bank`: (а) доля `unlisted` среди содержательных морфем ≤ 0.1; (б) нет items уровня > 4, кроме одного, чья лемма совпадает с `stretchLemma` и уровень 5–6; (в) все `targets` присутствуют (слова — по `itemIds`, конструкции — по `grammarMatches`). Режим `chat`: (а) и (б) не применяются. Везде: непустые абзацы.
 `buildCheck`: в `stem` ровно один `___`; 4 различных варианта; `answerIndex` 0–3; `itemIds` = items, найденные в **вариантах ответа** и различающиеся между ними (объединение по вариантам минус пересечение); если для проверки нет ни одного item, она не годится (`ok: false`).
 
-- [ ] **Step 1: Тесты**
+- [x] **Step 1: Тесты**
 
 ```ts
 it('buildPost: ru-абзац не анализируется, ko разбит на сегменты с itemIds', async () => {})
@@ -494,9 +494,9 @@ it('buildCheck: itemIds берутся из различающегося в ва
 it('saveThread/loadThread и saveCheck/loadCheck: круговой обмен', () => {})
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/posts.test.ts`. FAIL (анализатор подменён фикстурами из Task 5).**
-- [ ] **Step 3: Реализовать.** `saveThread` пишет `threads`, `posts` (`body_json`, `stretch_item_id`, `sources_json`), `post_items`, `checks` в одной транзакции.
-- [ ] **Step 4: Тесты проходят.**
+- [x] **Step 2: Запустить `npx vitest run tests/posts.test.ts`. FAIL (анализатор подменён фикстурами из Task 5).**
+- [x] **Step 3: Реализовать.** `saveThread` пишет `threads`, `posts` (`body_json`, `stretch_item_id`, `sources_json`), `post_items`, `checks` в одной транзакции.
+- [x] **Step 4: Тесты проходят.**
 - [ ] **Step 5: Commit `feat: post build, validation and storage`.**
 
 ---

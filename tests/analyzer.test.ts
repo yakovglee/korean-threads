@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  analyze, analyzeToSegments, AnalyzerError, grammarMatches, loadLexicon, posGroup, resolveMorphs, segmentText, toMorphs,
+  analyze, analyzeFull, analyzeToSegments, AnalyzerError, grammarMatches, grammarSpans, loadLexicon, posGroup, resolveMorphs, segmentText, toMorphs,
   type MecabToken, type Morph,
 } from '../src/lib/analyzer'
 import type { Db } from '../src/lib/db'
@@ -509,6 +509,26 @@ describe('grammarMatches: пропуск частицы между словам�
   })
 })
 
+describe('grammarSpans', () => {
+  it('grammarSpans: места по индексам morphs, end не включается; -을 수 있다 в 먹을 수 있어요 и 갈 수 있어요 (через «-ㄹ 수 있다») и 갈 в 밥을 먹고 학교에 갈 수 있다', async () => {
+    expect(grammarSpans(EUL_SU_ISSDA, await morphsOf('meogeul-su-isseoyo'))).toEqual([{ start: 1, end: 4 }])
+    expect(grammarSpans(EUL_SU_ISSDA, await morphsOf('gal-su-isseoyo'))).toEqual([{ start: 1, end: 4 }])
+    expect(grammarSpans(EUL_SU_ISSDA, await morphsOf('meokgo-gal-su-itda'))).toEqual([{ start: 7, end: 10 }])
+  })
+
+  it('grammarSpans: два вхождения дают два span по порядку; без конструкции — пустой массив; grammarMatches = есть span', async () => {
+    const twice = [
+      { lemma: '먹다', pos: 'VV' }, { lemma: '을', pos: 'ETM' }, { lemma: '수', pos: 'NNB' }, { lemma: '있다', pos: 'VV' },
+      { lemma: '가다', pos: 'VV' }, { lemma: '을', pos: 'ETM' }, { lemma: '수', pos: 'NNB' }, { lemma: '있다', pos: 'VV' },
+    ]
+    expect(grammarSpans(EUL_SU_ISSDA, twice)).toEqual([{ start: 1, end: 4 }, { start: 5, end: 8 }])
+    expect(grammarMatches(EUL_SU_ISSDA, twice)).toBe(true)
+    expect(grammarSpans(EUL_SU_ISSDA, await morphsOf('swigo-sipeoyo'))).toEqual([])
+    expect(grammarSpans(EUL_SU_ISSDA, [])).toEqual([])
+    expect(grammarMatches(EUL_SU_ISSDA, await morphsOf('swigo-sipeoyo'))).toBe(false)
+  })
+})
+
 describe('analyzeToSegments', () => {
   it('analyzeToSegments: фикстура через фейковый fetch → сегменты с itemIds', async () => {
     const db = await dbWith([vocab('v:1', '비', '명사', 1), vocab('v:2', '오다', '동사', 1), ...GRAMMAR])
@@ -544,6 +564,116 @@ describe('analyzeToSegments', () => {
     const { fetchImpl, calls } = replying(() => jsonRes([]))
     expect(await analyzeToSegments(db, '  ', 'http://analyzer.test', fetchImpl)).toEqual([])
     expect(calls).toHaveLength(0)
+  })
+
+  it('analyzeToSegments: многословная конструкция попадает во все сегменты, которые её покрывают (먹을 수 있어요 → -을 수 있다 у всех трёх)', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const fx = fixture('meogeul-su-isseoyo')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    const segs = await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)
+    expect(segs.map(s => s.text)).toEqual(['먹을', '수', '있어요'])
+    expect(segs.map(s => s.itemIds)).toEqual([['g:1'], ['g:1'], ['g:1']])
+  })
+
+  it('analyzeToSegments: многословная конструкция не попадает в сегмент, который она не покрывает (먹고 갈 수 있다: у 갈, 수, 있다 есть, у 먹고 нет)', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const fx = fixture('meokgo-gal-su-itda')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    const segs = await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)
+    expect(segs.map(s => s.text)).toEqual(['밥을', '먹고', '학교에', '갈', '수', '있다'])
+    expect(segs.map(s => s.itemIds)).toEqual([[], [], [], ['g:1'], ['g:1'], ['g:1']])
+  })
+
+  it('analyzeToSegments: id многословной конструкции дописывается после уже найденных (먹을: -을 [전성어미] g:50, затем g:1)', async () => {
+    const db = await dbWith([EUL_SU_ISSDA, EUL_ETM])
+    const fx = fixture('meogeul-su-isseoyo')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    const segs = await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)
+    expect(segs.map(s => s.itemIds)).toEqual([['g:50', 'g:1'], ['g:1'], ['g:1']])
+  })
+
+  it('analyzeToSegments: -기 때문에 в «배우기 때문에»: 때문 снимается из unlisted сегмента «때문에»; морфема вне места (배우다) и слово вне конструкции (한국어) остаются', async () => {
+    const db = await dbWith([GI_TTAEMUNE])
+    const fx = fixture('baeugi-ttaemune')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    expect(await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)).toEqual([
+      { text: '한국어를', itemIds: [], unlisted: [{ lemma: '한국어', pos: 'NNG' }] },
+      { text: '배우기', itemIds: ['g:8'], unlisted: [{ lemma: '배우다', pos: 'VV' }] },
+      { text: '때문에', itemIds: ['g:8'], unlisted: [] },
+      { text: '바빠요', itemIds: [], unlisted: [{ lemma: '바쁘다', pos: 'VV' }] },
+    ])
+  })
+
+  it('analyzeToSegments: -고 싶다 в «쉬고 싶어요»: 싶다 снимается из unlisted сегмента «싶어요»; 쉬다 вне места остаётся', async () => {
+    const GO_SIPEOYO = grammar('g:13', '-고 싶다', { pos: '관용 표현', level: 1, seq: 13 })
+    const db = await dbWith([GO_SIPEOYO])
+    const fx = fixture('swigo-sipeoyo')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    expect(await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)).toEqual([
+      { text: '쉬고', itemIds: ['g:13'], unlisted: [{ lemma: '쉬다', pos: 'VV' }] },
+      { text: '싶어요', itemIds: ['g:13'], unlisted: [] },
+    ])
+  })
+})
+
+// токены без фикстуры: пары [поверхность, тег], разбор как у ответа сервиса (без слитных частей)
+const synthTokens = (...pairs: [string, string][]): unknown[] =>
+  pairs.map(([surface, pos]) => ({ word: { surface, pos, entry_type: '*', expression: '*' }, parsed_expression: null }))
+
+describe('многословная конструкция и разрывы (знаки препинания, сегмент без выравнивания)', () => {
+  it('через точку не находится: «먹을. 수 있어요» и «먹을.수 있어요» (ни в сегментах, ни в морфемах текста)', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const tokens = synthTokens(['먹', 'VV'], ['을', 'ETM'], ['.', 'SF'], ['수', 'NNB'], ['있', 'VV'], ['어요', 'EF'])
+    for (const text of ['먹을. 수 있어요', '먹을.수 있어요']) {
+      const { fetchImpl } = replying(() => jsonRes(tokens))
+      const segs = await analyzeToSegments(db, text, 'http://analyzer.test', fetchImpl)
+      expect(segs.flatMap(s => s.itemIds)).toEqual([])
+      const full = await analyzeFull(db, text, 'http://analyzer.test', fetchImpl)
+      expect(grammarMatches(EUL_SU_ISSDA, full.morphs)).toBe(false)
+    }
+  })
+
+  it('через сегмент со сбоем выравнивания не находится: «먹을 zzz 수 있어요» (токена zzz в ответе нет)', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const text = '먹을 zzz 수 있어요'
+    const { fetchImpl } = replying(() => jsonRes(synthTokens(['먹', 'VV'], ['을', 'ETM'], ['수', 'NNB'], ['있', 'VV'], ['어요', 'EF'])))
+    const segs = await analyzeToSegments(db, text, 'http://analyzer.test', fetchImpl)
+    expect(segs.map(s => s.text)).toEqual(['먹을', 'zzz', '수', '있어요'])
+    expect(segs.flatMap(s => s.itemIds)).toEqual([])
+    const full = await analyzeFull(db, text, 'http://analyzer.test', fetchImpl)
+    expect(grammarMatches(EUL_SU_ISSDA, full.morphs)).toBe(false)
+  })
+
+  it('в обычном «먹을 수 있어요.» находится: точка в конце не разрывает место', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const text = '먹을 수 있어요.'
+    const { fetchImpl } = replying(() => jsonRes(synthTokens(['먹', 'VV'], ['을', 'ETM'], ['수', 'NNB'], ['있', 'VV'], ['어요', 'EF'], ['.', 'SF'])))
+    const segs = await analyzeToSegments(db, text, 'http://analyzer.test', fetchImpl)
+    expect(segs.map(s => s.itemIds)).toEqual([['g:1'], ['g:1'], ['g:1']])
+    const full = await analyzeFull(db, text, 'http://analyzer.test', fetchImpl)
+    expect(grammarMatches(EUL_SU_ISSDA, full.morphs)).toBe(true)
+  })
+
+  it('однословная форма многословной конструкции не дописывается сегменту: «고» из related у «-고 있다» не даёт второй id «쉬고»', async () => {
+    // «-고» (headword, уровень 1) выбирается для морфемы 고 раньше; «-고 있다» могла бы прикрепиться только по своей форме «고»
+    const GO = grammar('g:15', '-고', { pos: '연결어미', level: 1, seq: 15 })
+    const GO_ISSDA_SHORT = grammar('g:14', '-고 있다', { pos: '관용 표현', related: '고', level: 3, seq: 14 })
+    const db = await dbWith([GO, GO_ISSDA_SHORT])
+    const fx = fixture('swigo-sipeoyo')
+    const { fetchImpl } = replying(() => jsonRes(fx.tokens))
+    expect(await analyzeToSegments(db, fx.text, 'http://analyzer.test', fetchImpl)).toEqual([
+      { text: '쉬고', itemIds: ['g:15'], unlisted: [{ lemma: '쉬다', pos: 'VV' }] },
+      { text: '싶어요', itemIds: [], unlisted: [{ lemma: '싶다', pos: 'VX' }] },
+    ])
+  })
+
+  it('слово, дважды стоящее в unlisted сегмента, снимается только там, где оно внутри места: «먹을 수있다수»', async () => {
+    const db = await dbWith([EUL_SU_ISSDA])
+    const { fetchImpl } = replying(() => jsonRes(synthTokens(['먹', 'VV'], ['을', 'ETM'], ['수', 'NNB'], ['있', 'VV'], ['다', 'EF'], ['수', 'NNB'])))
+    expect(await analyzeToSegments(db, '먹을 수있다수', 'http://analyzer.test', fetchImpl)).toEqual([
+      { text: '먹을', itemIds: ['g:1'], unlisted: [{ lemma: '먹다', pos: 'VV' }] },
+      { text: '수있다수', itemIds: ['g:1'], unlisted: [{ lemma: '수', pos: 'NNB' }] },
+    ])
   })
 })
 
