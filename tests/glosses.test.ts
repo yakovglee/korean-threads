@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import type { Db } from '../src/lib/db'
-import { chooseEntryWithAi, fillMissingGlossesWithAi, ingestGlosses, lookupLemma } from '../src/lib/ingest/glosses'
+import { chooseEntryWithAi, fillMissingGlossesWithAi, fixSharedEntries, ingestGlosses, lookupLemma } from '../src/lib/ingest/glosses'
 import { candidateEntries, fetchKrdictEntries, type DictEntry, KrdictError } from '../src/lib/krdict'
 import type { LlmClient } from '../src/lib/llm'
 import { openTestDb } from './helpers/testDb'
@@ -616,5 +616,263 @@ describe('lookupLemma', () => {
     const llm = fakeLlm(() => ({ glossRu: 'магазин' }))
     expect(await lookupLemma(db, llm, '가게', 'NNG', KEY, dict.fetchImpl)).toEqual({ glossRu: 'магазин', source: 'ai' })
     expect(await db.query('select * from lemma_cache')).toEqual([])
+  })
+})
+
+describe('fixSharedEntries', () => {
+  // В фикстуре bae.xml статьи с точным «배» по порядку supNo: индекс = supNo − 1.
+  // supNo 4 — «два раза» (код 15901), supNo 2 — «лодка» (код 29729).
+  const SUP4_INDEX = 3
+  const SUP2_INDEX = 1
+  // supNo 3 — «груша» (код 31454)
+  const SUP3_INDEX = 2
+  const SHIP_GLOSS = 'лодка; судно; пароход'
+  const SHIP_EXPLANATION = 'Транспортное средство, перевозящее людей или грузы по воде.'
+  const PEAR_GLOSS = 'груша'
+  const PEAR_EXPLANATION = 'Плод круглой формы с жёлтой кожурой и белой мякотью, очень сочный и сладкий на вкус, созревающий осенью.'
+
+  async function seedNote(db: Db, itemId: string, glossRu: string | null, explanationRu: string | null, code: string): Promise<void> {
+    await db.query(
+      'insert into item_notes (item_id, gloss_ru, explanation_ru, source, krdict_code) values ($1, $2, $3, $4, $5)',
+      [itemId, glossRu, explanationRu, 'krdict', code],
+    )
+  }
+
+  // Два омонима «배» с одной статьёй (код 15901, «два раза»): общая статья
+  async function seedSharedPair(db: Db): Promise<void> {
+    await insertItem(db, { id: 'v:1', headword: '배', pos: '명사', hint: '두 배', homograph: 3, seq: 1 })
+    await insertItem(db, { id: 'v:2', headword: '배', pos: '명사', hint: '배를 타고', homograph: 2, seq: 2 })
+    await seedNote(db, 'v:1', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    await seedNote(db, 'v:2', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+  }
+
+  // То же, и третий омоним «배» вне группы со своей статьёй «лодка» (29729)
+  async function seedSharedPairAndOutsider(db: Db): Promise<void> {
+    await seedSharedPair(db)
+    await insertItem(db, { id: 'v:3', headword: '배', pos: '명사', hint: '배를 타고', homograph: 1, seq: 3 })
+    await seedNote(db, 'v:3', SHIP_GLOSS, SHIP_EXPLANATION, '29729')
+  }
+
+  it('два омонима с одной статьёй: записывается выбор модели; модель вызвана один раз, переписана только вторая строка', async () => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const dict = knows({ 배: fixture('bae.xml') })
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: SUP4_INDEX }, { item: 1, entry: SUP2_INDEX }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 1 })
+    expect(dict.queries).toEqual(['배'])
+    expect(llm.calls).toHaveLength(1)
+    expect(llm.calls[0].role).toBe('light')
+    expect(await notes(db)).toEqual([
+      { item_id: 'v:1', gloss_ru: BAE_SUP4_GLOSS, explanation_ru: BAE_SUP4_EXPLANATION, source: 'krdict', krdict_code: '15901' },
+      { item_id: 'v:2', gloss_ru: SHIP_GLOSS, explanation_ru: SHIP_EXPLANATION, source: 'krdict', krdict_code: '29729' },
+    ])
+  })
+
+  it('в запрос к модели идут омонимы (номер, часть речи, подсказка) и все статьи с точным заглавным словом', async () => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const llm = fakeLlm(() => ({ picks: [] }))
+    await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 배: fixture('bae.xml') }).fetchImpl, delayMs: 0 })
+
+    const payload = JSON.parse(llm.calls[0].user) as {
+      word: string
+      homographs: { item: number; homograph: number; pos: string; hint: string }[]
+      entries: { entry: number; pos: string; senses: unknown[] }[]
+    }
+    expect(payload.word).toBe('배')
+    expect(payload.homographs).toEqual([
+      { item: 0, homograph: 3, pos: '명사', hint: '두 배' },
+      { item: 1, homograph: 2, pos: '명사', hint: '배를 타고' },
+    ])
+    // пять статей с точным «배», включая «의존 명사»; «-배» и «배-» не входят
+    expect(payload.entries.map(e => [e.entry, e.pos])).toEqual([
+      [0, '명사'],
+      [1, '명사'],
+      [2, '명사'],
+      [3, '명사'],
+      [4, '의존 명사'],
+    ])
+    expect(payload.entries[3].senses).toHaveLength(2)
+  })
+
+  it('роль модели задаётся опцией role', async () => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const llm = fakeLlm(() => ({ picks: [] }))
+    await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 배: fixture('bae.xml') }).fetchImpl, delayMs: 0, role: 'write' })
+    expect(llm.calls[0].role).toBe('write')
+  })
+
+  it.each<[string, () => unknown]>([
+    ['нет поля picks', () => ({})],
+    ['picks не массив', () => ({ picks: 'два' })],
+    ['номер статьи вне списка', () => ({ picks: [{ item: 0, entry: 9 }] })],
+    ['номер омонима вне списка', () => ({ picks: [{ item: 5, entry: 1 }] })],
+    ['номер статьи не целый', () => ({ picks: [{ item: 0, entry: 1.5 }] })],
+    ['один омоним дважды', () => ({ picks: [{ item: 0, entry: 3 }, { item: 0, entry: 1 }] })],
+    ['элемент picks не объект', () => ({ picks: ['0:3'] })],
+    ['ошибка модели', () => {
+      throw new Error('модель недоступна')
+    }],
+  ])('битый ответ модели (%s) ничего не меняет; группа остаётся как есть', async (_name, answer) => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const before = await notes(db)
+    const llm = fakeLlm(answer)
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 배: fixture('bae.xml') }).fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 0 })
+    expect(llm.calls).toHaveLength(1)
+    expect(await notes(db)).toEqual(before)
+  })
+
+  it('слова с разными статьями группой не считаются: строки не трогаются, модель не вызывается', async () => {
+    const db = await openTestDb()
+    await insertItem(db, { id: 'v:1', headword: '배', pos: '명사', hint: '두 배', seq: 1 })
+    await insertItem(db, { id: 'v:2', headword: '배', pos: '명사', hint: '배를 타고', seq: 2 })
+    await seedNote(db, 'v:1', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    await seedNote(db, 'v:2', SHIP_GLOSS, SHIP_EXPLANATION, '29729')
+    const before = await notes(db)
+    const dict = knows({ 배: fixture('bae.xml') })
+    const llm = fakeLlm(() => ({ picks: [] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 0, changed: 0 })
+    expect(dict.queries).toHaveLength(0)
+    expect(llm.calls).toHaveLength(0)
+    expect(await notes(db)).toEqual(before)
+  })
+
+  it('группа без статьи с точным заглавным словом в словаре: модель не вызывается, строки как есть', async () => {
+    const db = await openTestDb()
+    await insertItem(db, { id: 'v:1', headword: '없는말', seq: 1 })
+    await insertItem(db, { id: 'v:2', headword: '없는말', seq: 2 })
+    await seedNote(db, 'v:1', 'слово', null, '555')
+    await seedNote(db, 'v:2', 'слово', null, '555')
+    const before = await notes(db)
+    const dict = knows({})
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: 0 }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 0 })
+    expect(dict.queries).toEqual(['없는말'])
+    expect(llm.calls).toHaveLength(0)
+    expect(await notes(db)).toEqual(before)
+  })
+
+  it('слова 5급 и грамматика в группы не входят', async () => {
+    const db = await openTestDb()
+    await insertItem(db, { id: 'v:1', level: 5, headword: '배', seq: 1 })
+    await insertItem(db, { id: 'v:2', level: 5, headword: '배', seq: 2 })
+    await insertItem(db, { id: 'g:1', kind: 'grammar', level: 1, headword: '배', seq: 3 })
+    await seedNote(db, 'v:1', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    await seedNote(db, 'v:2', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    await seedNote(db, 'g:1', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    const dict = knows({ 배: fixture('bae.xml') })
+    const llm = fakeLlm(() => ({ picks: [] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 0, changed: 0 })
+    expect(dict.queries).toHaveLength(0)
+    expect(llm.calls).toHaveLength(0)
+  })
+
+  it('entry −1 оставляет строку как есть; другая строка той же группы переписывается', async () => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const dict = knows({ 배: fixture('bae.xml') })
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: -1 }, { item: 1, entry: SUP2_INDEX }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 1 })
+    expect(await notes(db)).toEqual([
+      { item_id: 'v:1', gloss_ru: BAE_SUP4_GLOSS, explanation_ru: BAE_SUP4_EXPLANATION, source: 'krdict', krdict_code: '15901' },
+      { item_id: 'v:2', gloss_ru: SHIP_GLOSS, explanation_ru: SHIP_EXPLANATION, source: 'krdict', krdict_code: '29729' },
+    ])
+  })
+
+  it('статья, занятая омонимом вне группы, не переписывается в строку группы; вторая строка группы применяется', async () => {
+    const db = await openTestDb()
+    await seedSharedPairAndOutsider(db)
+    const dict = knows({ 배: fixture('bae.xml') })
+    // первому омониму группы модель отдала «лодку» (занята v:3), второму — «грушу»
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: SUP2_INDEX }, { item: 1, entry: SUP3_INDEX }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 1 })
+    expect(await notes(db)).toEqual([
+      { item_id: 'v:1', gloss_ru: BAE_SUP4_GLOSS, explanation_ru: BAE_SUP4_EXPLANATION, source: 'krdict', krdict_code: '15901' },
+      { item_id: 'v:2', gloss_ru: PEAR_GLOSS, explanation_ru: PEAR_EXPLANATION, source: 'krdict', krdict_code: '31454' },
+      { item_id: 'v:3', gloss_ru: SHIP_GLOSS, explanation_ru: SHIP_EXPLANATION, source: 'krdict', krdict_code: '29729' },
+    ])
+  })
+
+  it('в запросе модели статья, занятая омонимом вне группы, помечена taken: true; остальные статьи без пометки', async () => {
+    const db = await openTestDb()
+    await seedSharedPairAndOutsider(db)
+    const llm = fakeLlm(() => ({ picks: [] }))
+
+    await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 배: fixture('bae.xml') }).fetchImpl, delayMs: 0 })
+    const payload = JSON.parse(llm.calls[0].user) as { entries: { entry: number; taken?: boolean }[] }
+    // лодка (entry 1) занята v:3: только у неё есть поле taken
+    expect(payload.entries.map(e => [e.entry, 'taken' in e])).toEqual([
+      [0, false],
+      [1, true],
+      [2, false],
+      [3, false],
+      [4, false],
+    ])
+    expect(payload.entries[1].taken).toBe(true)
+  })
+
+  it('если модель выбрала ту же статью, строка не переписывается', async () => {
+    const db = await openTestDb()
+    await insertItem(db, { id: 'v:1', headword: '배', pos: '명사', hint: '두 배', seq: 1 })
+    await insertItem(db, { id: 'v:2', headword: '배', pos: '명사', hint: '두 배', seq: 2 })
+    await seedNote(db, 'v:1', 'старое значение', null, '15901')
+    await seedNote(db, 'v:2', BAE_SUP4_GLOSS, BAE_SUP4_EXPLANATION, '15901')
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: SUP4_INDEX }, { item: 1, entry: SUP4_INDEX }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 배: fixture('bae.xml') }).fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 0 })
+    expect((await notes(db))[0]).toEqual({ item_id: 'v:1', gloss_ru: 'старое значение', explanation_ru: null, source: 'krdict', krdict_code: '15901' })
+  })
+
+  it('статья без русского текста не затирает строку', async () => {
+    const db = await openTestDb()
+    await insertItem(db, { id: 'v:1', headword: '없는말', seq: 1 })
+    await insertItem(db, { id: 'v:2', headword: '없는말', seq: 2 })
+    await seedNote(db, 'v:1', 'слово', null, '999')
+    await seedNote(db, 'v:2', 'слово', null, '999')
+    const before = await notes(db)
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: 0 }, { item: 1, entry: -1 }] }))
+
+    expect(await fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: knows({ 없는말: NO_RUSSIAN_XML }).fetchImpl, delayMs: 0 })).toEqual({ groups: 1, changed: 0 })
+    expect(await notes(db)).toEqual(before)
+  })
+
+  it('сбой словаря после повторов: группа как есть, модель не вызывается', async () => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const before = await notes(db)
+    const dict = fakeDict(() => {
+      throw new TypeError('fetch failed')
+    })
+    const llm = fakeLlm(() => ({ picks: [{ item: 0, entry: SUP4_INDEX }, { item: 1, entry: SUP2_INDEX }] }))
+
+    const r = await runWithFakeTimers(() => fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 }))
+    expect(r).toEqual({ ok: true, value: { groups: 1, changed: 0 } })
+    expect(dict.queries).toHaveLength(3)
+    expect(llm.calls).toHaveLength(0)
+    expect(await notes(db)).toEqual(before)
+  })
+
+  it.each(['010', '020', '021'])('код словаря %s прерывает работу ошибкой без повтора', async code => {
+    const db = await openTestDb()
+    await seedSharedPair(db)
+    const before = await notes(db)
+    const dict = fakeDict(() => new Response(errorXml(code)))
+    const llm = fakeLlm(() => ({ picks: [] }))
+
+    const err = await errorOf(fixSharedEntries(db, { apiKey: KEY, llm, fetchImpl: dict.fetchImpl, delayMs: 0 }))
+    expect(err).toBeInstanceOf(KrdictError)
+    expect((err as KrdictError).code).toBe(code)
+    expect(dict.queries).toHaveLength(1)
+    expect(llm.calls).toHaveLength(0)
+    expect(await notes(db)).toEqual(before)
   })
 })

@@ -418,8 +418,8 @@ it('lookupLemma: нет в словаре и ИИ не дал значения �
 
 - [x] **Step 3: Запустить `npx vitest run tests/krdict.test.ts tests/glosses.test.ts`. FAIL.**
 - [x] **Step 4: Реализовать.** `delayMs` по умолчанию 150; ошибки HTTP повторять 3 раза, затем слово считается `missing`. Скрипт принимает `--limit N`.
-- [ ] **Step 5: Тесты проходят; прогнать `--limit 30`, показать владельцу долю слов с русским переводом; затем все 5690 слов 1–4급; затем `fillMissingGlossesWithAi`.**
-- [ ] **Step 6: Commit `feat: russian glosses from krdict`.**
+- [x] **Step 5: Тесты проходят; прогнать `--limit 30`, показать владельцу долю слов с русским переводом; затем все 5690 слов 1–4급; затем `fillMissingGlossesWithAi`.**
+- [x] **Step 6: Commit `feat: russian glosses from krdict`.**
 
 ---
 
@@ -497,7 +497,7 @@ it('saveThread/loadThread и saveCheck/loadCheck: круговой обмен', 
 - [x] **Step 2: Запустить `npx vitest run tests/posts.test.ts`. FAIL (анализатор подменён фикстурами из Task 5).**
 - [x] **Step 3: Реализовать.** `saveThread` пишет `threads`, `posts` (`body_json`, `stretch_item_id`, `sources_json`), `post_items`, `checks` в одной транзакции.
 - [x] **Step 4: Тесты проходят.**
-- [ ] **Step 5: Commit `feat: post build, validation and storage`.**
+- [x] **Step 5: Commit `feat: post build, validation and storage`.**
 
 ---
 

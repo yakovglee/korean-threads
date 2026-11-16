@@ -1,10 +1,11 @@
 // Русские значения слов 1–4급 из словаря 한국어기초사전 (нужен KRDICT_API_KEY); --ai заполняет оставшиеся пробелы ИИ.
-// Запуск из корня проекта: npx tsx scripts/ingest-glosses.ts [--limit N] [--delay мс] [--ai]
+// Запуск из корня проекта: npx tsx scripts/ingest-glosses.ts [--limit N] [--delay мс] [--ai] [--fix-shared]
+// --fix-shared после основного прохода исправляет общие статьи омонимов (одна статья на разные омонимы).
 // Ключ, адрес запроса к словарю и адрес базы в выводе не печатаются.
 import { existsSync } from 'node:fs'
 import { loadConfig, type Config } from '../src/lib/config'
 import { openDb } from '../src/lib/db'
-import { fillMissingGlossesWithAi, ingestGlosses } from '../src/lib/ingest/glosses'
+import { fillMissingGlossesWithAi, fixSharedEntries, ingestGlosses } from '../src/lib/ingest/glosses'
 import { openRouterClient } from '../src/lib/llm'
 
 for (const f of ['.env.local', '.env']) if (existsSync(f)) process.loadEnvFile(f)
@@ -18,14 +19,17 @@ const KEY_HELP = [
   'Получи ключ, добавь в .env строку KRDICT_API_KEY=... и запусти скрипт снова.',
 ]
 
-function parseArgs(argv: string[]): { limit: number | undefined; ai: boolean; delay: number } {
+function parseArgs(argv: string[]): { limit: number | undefined; ai: boolean; fixShared: boolean; delay: number } {
   let limit: number | undefined
   let ai = false
+  let fixShared = false
   let delay = 300
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--ai') {
       ai = true
+    } else if (arg === '--fix-shared') {
+      fixShared = true
     } else if (arg === '--limit') {
       const n = Number(argv[++i])
       if (!Number.isInteger(n) || n <= 0) throw new Error('--limit: нужно целое число больше нуля')
@@ -38,7 +42,7 @@ function parseArgs(argv: string[]): { limit: number | undefined; ai: boolean; de
       throw new Error(`неизвестный аргумент: ${arg}`)
     }
   }
-  return { limit, ai, delay }
+  return { limit, ai, fixShared, delay }
 }
 
 function share(part: number, whole: number): string {
@@ -90,6 +94,11 @@ async function main(): Promise<void> {
     console.log(`выбрано ИИ по подсказке: ${result.chosenByAi}`)
     if (result.lastModelError !== undefined) console.log(`последняя ошибка модели: ${safeMessage(result.lastModelError)}`)
     console.log(`в этом запуске с русским значением: ${share(result.done, result.done + result.missing + result.skipped)}`)
+
+    if (args.fixShared) {
+      const shared = await fixSharedEntries(db, { apiKey: cfg.krdictApiKey, llm, delayMs: args.delay, role: 'write' })
+      console.log(`общая статья: групп ${shared.groups}, исправлено ${shared.changed}`)
+    }
 
     if (args.ai) {
       const filled = await fillMissingGlossesWithAi(db, llm, { limit: args.limit })
