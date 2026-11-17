@@ -408,6 +408,74 @@ describe('resolveMorphs', () => {
   })
 })
 
+// prefer: список предпочитаемых id выбирает омоним слова и конструкцию с той же формой
+describe('prefer: список предпочитаемых id при омонимах и конструкциях с одной формой', () => {
+  const BAE_X = vocab('v:bx', '배', '명사', 2, 6, 1)
+  const BAE_Y = vocab('v:by', '배', '명사', 1, 8, 2)
+  const BAE_Z = vocab('v:bz', '배', '명사', 1, 2, 3)
+  const BAE = { lemma: '배', pos: 'NNG' }
+
+  it('без prefer берётся омоним с меньшим level, затем меньшим seq; с prefer — указанный', async () => {
+    const db = await dbWith([BAE_X, BAE_Y, BAE_Z])
+    expect(await resolveMorphs(db, [BAE])).toEqual({ itemIds: ['v:bz'], unlisted: [] })
+    expect(await resolveMorphs(db, [BAE], ['v:bx'])).toEqual({ itemIds: ['v:bx'], unlisted: [] })
+    expect(await resolveMorphs(db, [BAE], ['v:by'])).toEqual({ itemIds: ['v:by'], unlisted: [] })
+  })
+
+  it('при нескольких id из prefer берётся меньший level, затем меньший seq', async () => {
+    const db = await dbWith([BAE_X, BAE_Y, BAE_Z])
+    expect(await resolveMorphs(db, [BAE], ['v:bx', 'v:by'])).toEqual({ itemIds: ['v:by'], unlisted: [] })
+    expect(await resolveMorphs(db, [BAE], ['v:by', 'v:bz'])).toEqual({ itemIds: ['v:bz'], unlisted: [] })
+  })
+
+  it('id другого слова в prefer ничего не меняет', async () => {
+    const db = await dbWith([BAE_X, BAE_Y, BAE_Z, vocab('v:sa', '사과', '명사', 1, 1)])
+    expect(await resolveMorphs(db, [BAE], ['v:sa'])).toEqual({ itemIds: ['v:bz'], unlisted: [] })
+  })
+
+  it('омоним с неподходящей частью речи из prefer не берётся, когда есть подходящий', async () => {
+    const db = await dbWith([vocab('v:ga1', '가다', '형용사', 1, 1), vocab('v:ga2', '가다', '동사', 3, 9)])
+    expect(await resolveMorphs(db, [{ lemma: '가다', pos: 'VV' }], ['v:ga1'])).toEqual({ itemIds: ['v:ga2'], unlisted: [] })
+  })
+
+  it('если подходящей части речи нет, неподходящий омоним из prefer не подставляется: выбор как без prefer', async () => {
+    const db = await dbWith([vocab('v:ba1', '바쁘다', '형용사', 2, 1), vocab('v:ba2', '바쁘다', '감탄사', 1, 2)])
+    expect(await resolveMorphs(db, [{ lemma: '바쁘다', pos: 'VV' }], ['v:ba1'])).toEqual({ itemIds: ['v:ba2'], unlisted: [] })
+  })
+
+  it('конструкция-цель с той же формой берётся при prefer: завершающее и соединительное окончание у одной морфемы', async () => {
+    const db = await dbWith([
+      grammar('g:24', '-고', { pos: '종결어미', level: 1, seq: 24 }),
+      grammar('g:25', '-고', { pos: '연결어미', level: 3, seq: 25 }),
+    ])
+    expect(await resolveMorphs(db, [{ lemma: '고', pos: 'EF' }])).toEqual({ itemIds: ['g:24'], unlisted: [] })
+    expect(await resolveMorphs(db, [{ lemma: '고', pos: 'EF' }], ['g:25'])).toEqual({ itemIds: ['g:25'], unlisted: [] })
+    expect(await resolveMorphs(db, [{ lemma: '고', pos: 'EC' }])).toEqual({ itemIds: ['g:25'], unlisted: [] })
+    expect(await resolveMorphs(db, [{ lemma: '고', pos: 'EC' }], ['g:24'])).toEqual({ itemIds: ['g:24'], unlisted: [] })
+  })
+
+  it('качество совпадения важнее prefer: форма без «요» из prefer не берётся, когда есть точная', async () => {
+    const db = await dbWith([
+      grammar('g:26', '-고요', { pos: '종결어미', level: 2, seq: 26 }),
+      grammar('g:27', '-고', { pos: '종결어미', level: 1, seq: 27 }),
+    ])
+    expect(await resolveMorphs(db, [{ lemma: '고요', pos: 'EF' }])).toEqual({ itemIds: ['g:26'], unlisted: [] })
+    expect(await resolveMorphs(db, [{ lemma: '고요', pos: 'EF' }], ['g:27'])).toEqual({ itemIds: ['g:26'], unlisted: [] })
+  })
+
+  it('analyzeToSegments и analyzeFull передают prefer в разметку', async () => {
+    const db = await dbWith([BAE_Y, BAE_Z])
+    const tokens = [{ word: { surface: '배', pos: 'NNG', entry_type: '*', expression: '*' }, parsed_expression: null }]
+    const { fetchImpl } = replying(() => jsonRes(tokens))
+    expect(await analyzeToSegments(db, '배', 'http://analyzer.test', fetchImpl)).toEqual([{ text: '배', itemIds: ['v:bz'], unlisted: [] }])
+    expect(await analyzeToSegments(db, '배', 'http://analyzer.test', fetchImpl, { prefer: ['v:by'] })).toEqual([
+      { text: '배', itemIds: ['v:by'], unlisted: [] },
+    ])
+    const full = await analyzeFull(db, '배', 'http://analyzer.test', fetchImpl, { prefer: ['v:by'] })
+    expect(full.segments[0].itemIds).toEqual(['v:by'])
+  })
+})
+
 describe('grammarMatches', () => {
   it('grammarMatches: -거든 в 비가 오거든요 true, в 학교에 가요 false', async () => {
     expect(grammarMatches(GEODEUN_HOM2, await morphsOf('biga-ogeodeunyo'))).toBe(true)

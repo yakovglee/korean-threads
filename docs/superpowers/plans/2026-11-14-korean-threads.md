@@ -517,7 +517,7 @@ it('saveThread/loadThread и saveCheck/loadCheck: круговой обмен', 
 
 LLM возвращает `RawThread` (схема JSON). Требования к промпту (формулировку пишет исполнитель): живой естественный корейский, не учебный; стиль Threads (короткие реплики, ветки, диалоги) или Substack (3–6 абзацев, `title`); несколько разных авторов; никакой разметки в тексте; на каждую цель один `check`. В промпт идут русские значения целей, примеры из `item_notes` и до 4 фрагментов из `searchKb`. В 12% случаев передаётся `stretch` (случайное слово 5–6급). Невалидный ответ повторяется до `MAX_RETRIES` раз с текстом ошибок.
 
-- [ ] **Step 1: Тесты (фейковый `LlmClient`, анализатор на фикстурах)**
+- [x] **Step 1: Тесты (фейковый `LlmClient`, анализатор на фикстурах)**
 
 ```ts
 it('generateBankThread сохраняет валидный тред и привязывает цели', async () => { /* post_items содержит все цели */ })
@@ -528,9 +528,9 @@ it('generateChatThread: объяснение на ru допустимо, sources
 it('planBank: возобновляем, группы ≤ 3, цели не дублируются между группами', () => {})
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/generate.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать.** `scripts/generate-bank.ts`: флаги `--limit N`, `--dry-run` (число групп и грубая оценка токенов без обращения к API), печатает сумму `usage` по ходу.
-- [ ] **Step 4: Тесты проходят.**
+- [x] **Step 2: Запустить `npx vitest run tests/generate.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать.** `scripts/generate-bank.ts`: флаги `--limit N`, `--dry-run` (число групп и грубая оценка токенов без обращения к API), печатает сумму `usage` по ходу.
+- [x] **Step 4: Тесты проходят.**
 - [ ] **Step 5: Сравнение моделей.** `scripts/bake-off.ts` генерирует по 10 тредов для одних и тех же целей четырьмя моделями (по умолчанию `anthropic/claude-sonnet-5.5`, `anthropic/claude-haiku-5.5`, `google/gemini-3.8-flash`, `openai/gpt-6.1-terra`; перед запуском проверить их наличие `check-models.ts`), складывает результаты в `data/review/bake-off.md` с ценой за тред. Показать владельцу и записать выбранную `MODEL_WRITE` в `.env.local`.
 - [ ] **Step 6: Пробный `generate-bank --limit 20`, показать 5 тредов и расход. Полный запуск только по согласию владельца. Можно порциями: лента работает на том, что уже есть.**
 - [ ] **Step 7: Commit `feat: bank generation and chat thread generation`.**

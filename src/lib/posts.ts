@@ -15,7 +15,7 @@ export interface RawPost {
   stretchLemma?: string
 }
 export interface RawCheck { stem: string; options: string[]; answerIndex: number }
-export interface RawThread { posts: RawPost[]; check?: RawCheck }
+export interface RawThread { posts: RawPost[]; checks?: RawCheck[] }
 
 export interface BuiltPost {
   post: Omit<Post, 'id' | 'threadId'>
@@ -25,7 +25,8 @@ export interface BuiltPost {
 }
 
 export type Verdict = { ok: true } | { ok: false; errors: string[] }
-export type AnalyzeOpts = { secret?: string; timeoutMs?: number }
+// prefer — предпочитаемые id (цели поста) для выбора омонимов и конструкций при разметке
+export type AnalyzeOpts = { secret?: string; timeoutMs?: number; prefer?: string[] }
 
 // Ко-абзацы размечаются анализатором, ru-абзацы идут как есть.
 // itemIds — id из сегментов без повторов по порядку появления; grammarIds — все конструкции, найденные grammarMatches
@@ -163,15 +164,20 @@ export async function buildCheck(
 }
 
 // Ветка, её посты (position по порядку), post_items из ко-сегментов и, при наличии, вопросы — одной транзакцией.
-// Повторный id любой строки даёт ошибку, и тогда в базе ничего не остаётся. threadId поста должен совпадать с id ветки:
-// иначе ошибка до записи.
+// extraItems (id поста → id записей) дописываются в post_items поста без повторов: нужно для конструкций,
+// засчитанных только по grammarIds. Повторный id любой строки даёт ошибку, и тогда в базе ничего не остаётся.
+// threadId поста должен совпадать с id ветки, а ключи extraItems — быть постами ветки: иначе ошибка до записи.
 export async function saveThread(
   db: Db,
   thread: Thread,
-  opts: { checks?: Check[]; now?: number } = {},
+  opts: { checks?: Check[]; now?: number; extraItems?: Record<string, string[]> } = {},
 ): Promise<void> {
   for (const post of thread.posts) {
     if (post.threadId !== thread.id) throw new Error(`пост ${post.id}: threadId не совпадает с id ветки`)
+  }
+  const postIds = new Set(thread.posts.map(p => p.id))
+  for (const id of Object.keys(opts.extraItems ?? {})) {
+    if (!postIds.has(id)) throw new Error(`extraItems: поста ${id} нет в ветке`)
   }
   const now = opts.now ?? Date.now()
   await db.tx(async tx => {
@@ -193,7 +199,7 @@ export async function saveThread(
           post.sources === undefined ? null : JSON.stringify(post.sources),
         ],
       )
-      for (const itemId of koItemIds(post.paragraphs)) {
+      for (const itemId of unique([...koItemIds(post.paragraphs), ...(opts.extraItems?.[post.id] ?? [])])) {
         await tx.query('insert into post_items (post_id, item_id) values ($1, $2)', [post.id, itemId])
       }
     }

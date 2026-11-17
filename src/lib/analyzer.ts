@@ -205,17 +205,19 @@ export function loadLexicon(db: Db): Promise<Lexicon> {
 interface Unlisted { lemma: string; pos: string; at: number }
 interface Resolved { itemIds: string[]; unlisted: Unlisted[] }
 
-// Морфемы сегмента → id найденных слов и конструкций (без повторов, по порядку) и незнакомые леммы
+// Морфемы сегмента → id найденных слов и конструкций (без повторов, по порядку) и незнакомые леммы.
+// prefer — предпочитаемые id: при омонимах и конструкциях с одной формой выбирается запись из этого списка.
 export async function resolveMorphs(
   db: Db,
   morphs: Morph[],
+  prefer?: readonly string[],
 ): Promise<{ itemIds: string[]; unlisted: { lemma: string; pos: string }[] }> {
-  const r = await resolveIndexed(db, morphs)
+  const r = await resolveIndexed(db, morphs, prefer)
   return { itemIds: r.itemIds, unlisted: r.unlisted.map(({ lemma, pos }) => ({ lemma, pos })) }
 }
 
 // То же, что resolveMorphs, но у незнакомых морфем сохраняется индекс
-async function resolveIndexed(db: Db, morphs: Morph[]): Promise<Resolved> {
+async function resolveIndexed(db: Db, morphs: Morph[], prefer: readonly string[] = []): Promise<Resolved> {
   const lex = await loadLexicon(db)
   const itemIds: string[] = []
   const unlisted: Unlisted[] = []
@@ -227,7 +229,7 @@ async function resolveIndexed(db: Db, morphs: Morph[]): Promise<Resolved> {
     const group = posGroup(m.pos)
     if (group === 'skip') continue
     if (group === 'func') {
-      const hit = bestGrammar(lex, m)
+      const hit = bestGrammar(lex, m, prefer)
       if (hit) add(hit.id)
       continue
     }
@@ -241,7 +243,7 @@ async function resolveIndexed(db: Db, morphs: Morph[]): Promise<Resolved> {
         continue
       }
     }
-    const hit = bestVocab(lex, m, group)
+    const hit = bestVocab(lex, m, group, prefer)
     if (hit) add(hit.id)
     else unlisted.push({ lemma: m.alt ?? m.lemma, pos: m.pos, at: i })
   }
@@ -268,12 +270,12 @@ export async function analyzeFull(
   text: string,
   baseUrl: string,
   fetchImpl?: typeof fetch,
-  opts: { secret?: string; timeoutMs?: number } = {},
+  opts: { secret?: string; timeoutMs?: number; prefer?: readonly string[] } = {},
 ): Promise<{ segments: Segment[]; morphs: Morph[] }> {
   const tokens = await analyze(text, baseUrl, fetchImpl, opts)
   const segs = parseSegments(text, tokens)
   const out: Resolved[] = []
-  for (const seg of segs) out.push(await resolveIndexed(db, seg.morphs))
+  for (const seg of segs) out.push(await resolveIndexed(db, seg.morphs, opts.prefer))
   const tape = tapeOf(segs)
   await addMultiwordIds(db, tape, out)
   const segments: Segment[] = segs.map((seg, i) => ({
@@ -290,7 +292,7 @@ export async function analyzeToSegments(
   text: string,
   baseUrl: string,
   fetchImpl?: typeof fetch,
-  opts: { secret?: string; timeoutMs?: number } = {},
+  opts: { secret?: string; timeoutMs?: number; prefer?: readonly string[] } = {},
 ): Promise<Segment[]> {
   return (await analyzeFull(db, text, baseUrl, fetchImpl, opts)).segments
 }
@@ -517,25 +519,29 @@ function matchQuality(lemma: string, form: string): 0 | 1 | null {
   return noYo.includes(form) ? 1 : null
 }
 
-// Служебная морфема → конструкция. Порядок: точность, класс, headword раньше related, level, seq.
-function bestGrammar(lex: Lexicon, m: Morph): Item | null {
+// Служебная морфема → конструкция. Порядок: точность совпадения, id из prefer, точный класс, headword раньше related,
+// level, seq. Совпадение хуже лучшего по точности prefer не выигрывает.
+function bestGrammar(lex: Lexicon, m: Morph, prefer: readonly string[]): Item | null {
   const cls = classOf(m.pos)
   let best: { key: number[]; item: Item } | null = null
   for (const { item, forms } of lex.grammar) {
     if (!classCompatible(item.pos, m.pos)) continue
+    const preferred = prefer.includes(item.id) ? 0 : 1
     for (const f of forms) {
       if (f.words.length !== 1) continue
       const q = matchQuality(m.lemma, f.words[0])
       if (q === null) continue
-      const key = [q, classFits(item.pos, cls) ? 0 : 1, f.fromHeadword ? 0 : 1, item.level, item.seq]
+      const key = [q, preferred, classFits(item.pos, cls) ? 0 : 1, f.fromHeadword ? 0 : 1, item.level, item.seq]
       if (best === null || lessKey(key, best.key)) best = { key, item }
     }
   }
   return best?.item ?? null
 }
 
-// Содержательная морфема → слово. Кандидаты по lemma и alt; сначала подходящая часть речи, затем level, seq.
-function bestVocab(lex: Lexicon, m: Morph, group: PosGroup): Item | null {
+// Содержательная морфема → слово. Кандидаты по lemma и alt. Если есть подходящие по части речи, выбор только среди них;
+// затем id из prefer (при нескольких — level, seq); иначе level, seq. Слово с другим headword сюда не попадает,
+// неподходящая по части речи запись из prefer не выбирается.
+function bestVocab(lex: Lexicon, m: Morph, group: PosGroup, prefer: readonly string[]): Item | null {
   const keys = m.alt === undefined ? [m.lemma] : [m.lemma, m.alt]
   const seen = new Set<string>()
   const cands: Item[] = []
@@ -546,8 +552,11 @@ function bestVocab(lex: Lexicon, m: Morph, group: PosGroup): Item | null {
       cands.push(it)
     }
   }
-  cands.sort((a, b) => Number(posFits(b.pos, group)) - Number(posFits(a.pos, group)) || byLevelSeq(a, b))
-  return cands[0] ?? null
+  const fitting = cands.filter(it => posFits(it.pos, group))
+  const pool = fitting.length > 0 ? fitting : cands
+  const preferred = fitting.filter(it => prefer.includes(it.id))
+  const pick = preferred.length > 0 ? preferred : pool
+  return [...pick].sort(byLevelSeq)[0] ?? null
 }
 
 // Слитное слово «существительное + 하다» среди глаголов и прилагательных

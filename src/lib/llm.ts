@@ -13,10 +13,18 @@ const MODEL_ROLES: ModelRole[] = ['write', 'light', 'vision', 'verify', 'embed']
 
 export interface Usage { inputTokens: number; outputTokens: number }
 
+// Вид ошибки ответа модели, который можно исправить повтором: невалидный JSON или обрезанный по maxTokens ответ
+export type LlmErrorKind = 'invalid' | 'truncated'
+
+// kind и usage есть только у ошибок самого ответа модели (невалидный JSON, обрезанный ответ): вызов уже оплачен
 export class LlmError extends Error {
-  constructor(message: string, public status?: number) {
+  kind?: LlmErrorKind
+  usage?: Usage
+  constructor(message: string, public status?: number, extra: { kind?: LlmErrorKind; usage?: Usage } = {}) {
     super(message)
     this.name = 'LlmError'
+    if (extra.kind !== undefined) this.kind = extra.kind
+    if (extra.usage !== undefined) this.usage = extra.usage
   }
 }
 
@@ -95,7 +103,7 @@ export function openRouterClient(cfg: Config, fetchImpl?: typeof fetch, opts: Op
       try {
         parsed = JSON.parse(content) as unknown
       } catch {
-        throw new LlmError('модель вернула невалидный JSON')
+        throw new LlmError('модель вернула невалидный JSON', undefined, { kind: 'invalid', usage: usageOf(data) })
       }
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new LlmError('модель вернула не объект')
       return { value: parsed as T, usage: usageOf(data) }
@@ -152,6 +160,19 @@ export async function checkModels(cfg: Config, fetchImpl?: typeof fetch, opts: O
     lines.push(`${role.padEnd(7)} ${id}  вход $${perMillion(found.prompt)}, выход $${perMillion(found.completion)} за 1M токенов${noImage ? '  нет входа image' : ''}`)
   }
   return { ok: missing.length === 0, missing, lines }
+}
+
+export interface ModelPrice { prompt: number; completion: number }
+
+// Цены чат-моделей из /models: доллары за один токен. Модель без числовой цены в Map не попадает.
+export async function modelPrices(cfg: Config, fetchImpl?: typeof fetch, opts: OpenRouterOptions = {}): Promise<Map<string, ModelPrice>> {
+  const key = requireKey(cfg)
+  const listed = await listModels(fetchImpl ?? fetch, '/models', key, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS)
+  const out = new Map<string, ModelPrice>()
+  for (const [id, m] of listed) {
+    if (Number.isFinite(m.prompt) && Number.isFinite(m.completion)) out.set(id, { prompt: m.prompt, completion: m.completion })
+  }
+  return out
 }
 
 async function listModels(doFetch: typeof fetch, path: string, key: string, timeoutMs: number): Promise<Map<string, Listed>> {
@@ -230,7 +251,9 @@ function textContent(data: unknown): string {
   const choice = (data as ChatResponse | null)?.choices?.[0]
   const content = choice?.message?.content
   // обрезанный по maxTokens ответ не принимаем, даже если часть текста пришла (например, «Крас» вместо «Красный»)
-  if (choice?.finish_reason === 'length') throw new LlmError('ответ модели обрезан: не хватило maxTokens')
+  if (choice?.finish_reason === 'length') {
+    throw new LlmError('ответ модели обрезан: не хватило maxTokens', undefined, { kind: 'truncated', usage: usageOf(data) })
+  }
   // finish_reason в тексте ошибки: по нему видно, почему ответ пустой
   if (typeof content !== 'string' || content.trim() === '') throw new LlmError(`пустой ответ модели (finish_reason: ${String(choice?.finish_reason ?? 'нет')})`)
   return content

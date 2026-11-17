@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/lib/config'
-import { checkModels, LlmError, openRouterClient } from '../src/lib/llm'
+import { checkModels, LlmError, modelPrices, openRouterClient } from '../src/lib/llm'
 
 const KEY = 'sk-or-v1-TESTKEY'
 const cfg = (env: Record<string, string | undefined> = { OPENROUTER_API_KEY: KEY }) => loadConfig(env)
@@ -243,6 +243,23 @@ describe('openRouterClient', () => {
     expect(f.calls).toHaveLength(1)
   })
 
+  it('json: невалидный JSON → LlmError kind invalid с usage ответа', async () => {
+    const f = fake(() => chatOk('это не JSON {'))
+    const llm = openRouterClient(cfg(), f.fetchImpl, FAST)
+    const e = await errOf(llm.json(JSON_ARGS))
+    expect(e).toBeInstanceOf(LlmError)
+    expect(e).toMatchObject({ message: 'модель вернула невалидный JSON', kind: 'invalid', usage: { inputTokens: 10, outputTokens: 5 } })
+  })
+
+  it('json: обрезанный ответ → LlmError kind truncated с usage ответа; HTTP-ошибка без kind и usage', async () => {
+    const cut = await errOf(openRouterClient(cfg(), fake(() => chatWith('{"x":1}', 'length')).fetchImpl, FAST).json(JSON_ARGS))
+    expect(cut).toMatchObject({ kind: 'truncated', usage: { inputTokens: 10, outputTokens: 5 } })
+    const http = await errOf(openRouterClient(cfg(), fake(() => errRes(400, 'model not found')).fetchImpl, FAST).json(JSON_ARGS))
+    expect(http).toBeInstanceOf(LlmError)
+    expect((http as LlmError).kind).toBeUndefined()
+    expect((http as LlmError).usage).toBeUndefined()
+  })
+
   it('finish_reason stop проходит как раньше', async () => {
     const f = fake((_u, _i, n) => (n === 0 ? chatWith('распознано', 'stop') : chatWith('{"x":7}', 'stop')))
     const llm = openRouterClient(cfg(), f.fetchImpl, FAST)
@@ -342,6 +359,49 @@ const listOf = (rows: ListedRow[]): Response => jsonRes({ data: toItems(rows) })
 
 const modelsFake = (chat: ListedRow[], embed: ListedRow[]) =>
   fake(url => (url.endsWith('/embeddings/models') ? listOf(embed) : listOf(chat)))
+
+describe('modelPrices', () => {
+  it('цены за токен по /models: строки переводятся в числа; эмбеддинги не запрашиваются', async () => {
+    const f = fake(() => listOf(CHAT_MODELS))
+    const prices = await modelPrices(cfg(), f.fetchImpl)
+    expect(f.calls.map(c => c.url)).toEqual(['https://openrouter.ai/api/v1/models'])
+    expect(headerOf(f.calls[0]).Authorization).toBe(`Bearer ${KEY}`)
+    expect(prices.size).toBe(3)
+    expect(prices.get('anthropic/claude-sonnet-5.5')).toEqual({ prompt: 0.000003, completion: 0.000015 })
+    expect(prices.get('google/gemini-3.8-flash')).toEqual({ prompt: 0.0000003, completion: 0.0000025 })
+  })
+
+  it('модель без числовой цены в Map не попадает', async () => {
+    const rows: ListedRow[] = [...CHAT_MODELS, { id: 'x/no-price', input_modalities: ['text'], prompt: 'н/д', completion: '0.1' }]
+    const prices = await modelPrices(cfg(), fake(() => listOf(rows)).fetchImpl)
+    expect(prices.has('x/no-price')).toBe(false)
+    expect(prices.has('anthropic/claude-haiku-5.5')).toBe(true)
+  })
+
+  it('без ключа LlmError до сетевого вызова', async () => {
+    const f = fake(() => listOf(CHAT_MODELS))
+    const e = await errOf(modelPrices(cfg({}), f.fetchImpl))
+    expect(e).toBeInstanceOf(LlmError)
+    expect((e as Error).message).toBe('OPENROUTER_API_KEY не задан')
+    expect(f.calls).toHaveLength(0)
+  })
+
+  it('HTTP-ошибка → LlmError со status, ключ не попадает в текст', async () => {
+    const f = fake(() => errRes(401, `invalid key ${KEY}`))
+    const e = await errOf(modelPrices(cfg(), f.fetchImpl))
+    expect(e).toBeInstanceOf(LlmError)
+    expect((e as LlmError).status).toBe(401)
+    expect((e as Error).message).not.toContain(KEY)
+  })
+
+  it('тайм-аут → LlmError «не ответил», без повтора', async () => {
+    const h = hanging()
+    const e = await errOf(modelPrices(cfg(), h.fetchImpl, { timeoutMs: 20 }))
+    expect(e).toBeInstanceOf(LlmError)
+    expect((e as LlmError).message).toMatch(/OpenRouter не ответил за /)
+    expect(h.calls).toHaveLength(1)
+  })
+})
 
 describe('checkModels', () => {
   it('checkModels: все найдены', async () => {

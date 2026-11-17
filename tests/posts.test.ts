@@ -137,6 +137,15 @@ describe('buildPost', () => {
     expect(built.grammarIds).toContain('g:6')
     expect(await validatePost(db, built, { mode: 'bank', targets: [GEODEUN] })).toEqual({ ok: true })
   })
+
+  it('buildPost с prefer: id цели попадает в сегмент и в itemIds; без prefer берётся омоним с меньшим уровнем', async () => {
+    const db = await dbWith([vocab('v:b1', '배', '명사', 1, 1), vocab('v:b2', '배', '명사', 2, 2)])
+    const plain = await buildPost(db, raw([{ lang: 'ko', text: '배' }]), ANALYZER, wordsAnalyzer())
+    expect(plain.itemIds).toEqual(['v:b1'])
+    const built = await buildPost(db, raw([{ lang: 'ko', text: '배' }]), ANALYZER, wordsAnalyzer(), { prefer: ['v:b2'] })
+    expect(built.post.paragraphs).toEqual([{ lang: 'ko', segments: [{ text: '배', itemIds: ['v:b2'], unlisted: [] }] }])
+    expect(built.itemIds).toEqual(['v:b2'])
+  })
 })
 
 describe('validatePost', () => {
@@ -366,6 +375,22 @@ describe('хранение веток и вопросов', () => {
     const loaded = await loadThread(db, 't5')
     expect(loaded?.posts.map(p => p.id)).toEqual(['p9', 'p1'])
     expect(loaded).toEqual(thread)
+  })
+
+  it('saveThread: extraItems дописываются в post_items без повторов; ключ не из ветки — ошибка до записи', async () => {
+    const db = await dbWith([BI, GEODEUN])
+    const thread: Thread = {
+      id: 't7', origin: 'bank',
+      posts: [{ id: 'p1', threadId: 't7', author: { name: 'Тест', handle: 'test' }, paragraphs: [{ lang: 'ko', segments: [{ text: '비', itemIds: ['v:1'], unlisted: [] }] }] }],
+    }
+    // v:1 уже есть в сегментах, g:6 повторён: в post_items по одной строке на запись
+    await saveThread(db, thread, { now: 7, extraItems: { p1: ['g:6', 'v:1', 'g:6'] } })
+    const rows = await db.query<{ item_id: string }>('select item_id from post_items where post_id = $1 order by item_id', ['p1'])
+    expect(rows.map(r => r.item_id)).toEqual(['g:6', 'v:1'])
+
+    const other: Thread = { id: 't8', origin: 'bank', posts: [{ ...thread.posts[0], id: 'p2', threadId: 't8' }] }
+    await expect(saveThread(db, other, { extraItems: { p1: ['g:6'] } })).rejects.toThrow(/p1/)
+    expect(await loadThread(db, 't8')).toBeNull()
   })
 
   it('saveThread: пост с чужим threadId — ошибка до записи, таблицы пусты', async () => {
