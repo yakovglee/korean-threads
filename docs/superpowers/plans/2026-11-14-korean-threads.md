@@ -619,7 +619,7 @@ export function recordDelivered(db: Database, cards: FeedCard[], now: number, tz
 
 Алгоритм `pickFeed`: оценка треда = сумма `priority` слов и конструкций 1–4급, на которые он ссылается; кандидаты — топ-3n по оценке среди тредов, не показанных за `RECENT_DAYS`; взвешенная случайная выборка n; тред с «новыми» (`isNew`) сверх `NEW_PER_DAY` за локальный день исключается; с вероятностью `STRETCH_RATE` слот занимает тред с `stretch_item_id`. После каждых `CHECK_EVERY` карточек вставляется карточка-проверка (`pickCheck`: проверка с целью наибольшего приоритета, не отвеченная за `CHECK_COOLDOWN_DAYS`; источники `exam` и `topik-style` предпочтительнее `post`, чтобы экзаменационные задания встречались заметно чаще). `recordDelivered` проставляет `last_delivered_at` и `introduced_day`.
 
-- [ ] **Step 1: Тесты (Review Focus 3)**
+- [x] **Step 1: Тесты (Review Focus 3)**
 
 ```ts
 it('localDayKey учитывает tz', () => expect(localDayKey(Date.UTC(2026, 10, 14, 23, 30), 'Asia/Seoul')).toBe('2026-11-15'))
@@ -632,10 +632,10 @@ it('нет проверок → карточек-проверок нет, без
 it('pickCheck предпочитает exam/topik-style при равном приоритете', () => {})
 ```
 
-- [ ] **Step 2: Запустить `npx vitest run tests/feed.test.ts`. FAIL.**
-- [ ] **Step 3: Реализовать.**
-- [ ] **Step 4: Тесты проходят.**
-- [ ] **Step 5: Commit `feat: feed selection`.**
+- [x] **Step 2: Запустить `npx vitest run tests/feed.test.ts`. FAIL.**
+- [x] **Step 3: Реализовать.**
+- [x] **Step 4: Тесты проходят.**
+- [x] **Step 5: Commit `feat: feed selection`.**
 
 ---
 
