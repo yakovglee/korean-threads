@@ -8,6 +8,8 @@ import { dirname, extname, join } from 'node:path'
 import type * as MuPdf from 'mupdf'
 import { nfc } from '../ko'
 import type { LlmClient } from '../llm'
+import type { VisionOcr, VisionPage } from './vision'
+import { visionText } from './vision-text'
 
 export interface PageText { page: number; text: string; via: 'text' | 'ocr' }
 
@@ -96,6 +98,11 @@ export function cachePath(cacheDir: string, sha: string, page: number): string {
   return join(cacheDir, sha, `${page}.md`)
 }
 
+// Сырой ответ Vision одной страницы: <cacheDir>/<sha1 файла>/<страница>.vision.json
+export function visionCachePath(cacheDir: string, sha: string, page: number): string {
+  return join(cacheDir, sha, `${page}.vision.json`)
+}
+
 // Запись страницы в кэш атомарно: временный файл в той же папке, затем rename.
 // Оборванная запись не оставляет битого <страница>.md, а существующая страница заменяется целиком.
 export async function writeCachedPage(file: string, text: string): Promise<void> {
@@ -127,6 +134,7 @@ export async function scanDocument(
 
 export interface ExtractDeps {
   llm: LlmClient
+  vision?: VisionOcr
   cacheDir: string
   render?: typeof renderPdfPage
   minChars?: number
@@ -158,6 +166,18 @@ export async function extractDocument(path: string, deps: ExtractDeps): Promise<
       const file = cachePath(deps.cacheDir, hash, page)
       if (existsSync(file)) {
         result = { page, text: nfc(readFileSync(file, 'utf8')), via: 'ocr' }
+      } else if (deps.vision) {
+        const visionFile = visionCachePath(deps.cacheDir, hash, page)
+        let vp: VisionPage
+        if (existsSync(visionFile)) {
+          vp = JSON.parse(readFileSync(visionFile, 'utf8')) as VisionPage
+        } else {
+          const imagePng = await render(path, page, 200)
+          // ошибка Vision пробрасывается наружу и до записи кэша не доходит
+          vp = await deps.vision(imagePng)
+          await writeCachedPage(visionFile, JSON.stringify(vp))
+        }
+        result = { page, text: nfc(visionText(vp)), via: 'ocr' }
       } else {
         const imagePng = await render(path, page)
         // ошибка модели пробрасывается наружу и до записи кэша не доходит

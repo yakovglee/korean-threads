@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Db } from '../src/lib/db'
-import { classifySource, indexDocument, ocrPlan, parseIngestArgs, runLimited, type PlanDoc } from '../src/lib/kb/index'
+import { classifySource, indexDocument, ocrPlan, pageVerdict, parseIngestArgs, runLimited, type PlanDoc } from '../src/lib/kb/index'
 import { nfc } from '../src/lib/ko'
 import { LlmError, type LlmClient } from '../src/lib/llm'
 import { openTestDb } from './helpers/testDb'
@@ -307,6 +307,8 @@ describe('parseIngestArgs', () => {
       exclude: [],
       forceOcr: [],
       jobs: 1,
+      ocrEngine: 'vision',
+      ocrReport: false,
     })
   })
 
@@ -320,6 +322,8 @@ describe('parseIngestArgs', () => {
       exclude: [],
       forceOcr: [],
       jobs: 1,
+      ocrEngine: 'vision',
+      ocrReport: false,
     })
     expect(parseIngestArgs(['--dry-run', '--only', '합격 레시피'])).toEqual({
       dryRun: true,
@@ -330,6 +334,8 @@ describe('parseIngestArgs', () => {
       exclude: [],
       forceOcr: [],
       jobs: 1,
+      ocrEngine: 'vision',
+      ocrReport: false,
     })
   })
 
@@ -394,6 +400,62 @@ describe('parseIngestArgs', () => {
     expect(() => parseIngestArgs(['--ocr-page', 'TOPIK/a.pdf:x'])).toThrow()
     expect(() => parseIngestArgs(['--ocr-page', ':3'])).toThrow()
     expect(() => parseIngestArgs(['--dry-run', '--ocr-page', 'TOPIK/a.pdf:1'])).toThrow()
+  })
+
+  it('--ocr-engine: vision или llm, другое значение и пустое значение — ошибка', () => {
+    expect(parseIngestArgs(['--ocr-engine', 'llm']).ocrEngine).toBe('llm')
+    expect(parseIngestArgs(['--ocr-engine', 'vision']).ocrEngine).toBe('vision')
+    expect(() => parseIngestArgs(['--ocr-engine', 'tesseract'])).toThrow('--ocr-engine: нужно vision или llm')
+    expect(() => parseIngestArgs(['--ocr-engine', 'Vision'])).toThrow('--ocr-engine: нужно vision или llm')
+    expect(() => parseIngestArgs(['--ocr-engine'])).toThrow('--ocr-engine: нужно значение')
+    expect(() => parseIngestArgs(['--ocr-engine', '--yes'])).toThrow('--ocr-engine: нужно значение')
+  })
+
+  it('--ocr-report включается и сочетается с --only, --exclude, --force-ocr', () => {
+    const args = parseIngestArgs(['--ocr-report', '--only', '83회', '--exclude', 'TOPIK1', '--force-ocr', '합격 레시피'])
+    expect(args.ocrReport).toBe(true)
+    expect(args.only).toBe('83회')
+    expect(args.exclude).toEqual(['TOPIK1'])
+    expect(args.forceOcr).toEqual([nfc('합격 레시피')])
+  })
+
+  it('--ocr-report вместе с --dry-run или --ocr-page — ошибка', () => {
+    expect(() => parseIngestArgs(['--ocr-report', '--dry-run'])).toThrow('--ocr-report вместе с --dry-run или --ocr-page')
+    expect(() => parseIngestArgs(['--dry-run', '--ocr-report'])).toThrow('--ocr-report вместе с --dry-run или --ocr-page')
+    expect(() => parseIngestArgs(['--ocr-report', '--ocr-page', 'TOPIK/a.pdf:1'])).toThrow('--ocr-report вместе с --dry-run или --ocr-page')
+  })
+})
+
+describe('pageVerdict', () => {
+  const empty = { code: 'empty' as const, detail: '3 зн.' }
+  const pictures = { code: 'pictures' as const, detail: '4 вариантов без текста' }
+  const options = { code: 'options' as const, detail: '①×3 ②×2 ③×2 ④×2' }
+
+  it('уже есть платный .md: «уже платно», даже если это таблица ответов или есть флаги', () => {
+    expect(pageVerdict('TOPIK/83회 정답.pdf', 'exam', [empty], true)).toBe('уже платно')
+    expect(pageVerdict('TOPIK/2023.pdf', 'exam', [options], true)).toBe('уже платно')
+  })
+
+  it('в пути есть 정답: «платно: таблица ответов»', () => {
+    expect(pageVerdict(nfd('TOPIK/83회 정답.pdf'), 'exam', [], false)).toBe('платно: таблица ответов')
+    expect(pageVerdict('TOPIK/83회 정답.pdf', 'exam', [pictures], false)).toBe('платно: таблица ответов')
+    // 정답 только в имени папки выпуска — это лист вопросов, а не таблица
+    expect(pageVerdict('TOPIK/47회_TOPIK1_기출 및 정답/47회_문제지_TOPIK1.pdf', 'exam', [], false)).toBe('ok')
+  })
+
+  it('флаг empty или pictures: «не нужно»', () => {
+    expect(pageVerdict('TOPIK/2023.pdf', 'exam', [empty], false)).toBe('не нужно')
+    expect(pageVerdict('TOPIK/2023.pdf', 'exam', [pictures, options], false)).toBe('не нужно')
+  })
+
+  it('экзамен с флагом options: «можно платно»; у учебника options не учитывается', () => {
+    expect(pageVerdict('TOPIK/2023.pdf', 'exam', [options], false)).toBe('можно платно')
+    expect(pageVerdict('RESIPI_4.pdf', 'textbook', [options], false)).toBe('ok')
+  })
+
+  it('без флагов и без платного кэша: «ok»', () => {
+    expect(pageVerdict('TOPIK/2023.pdf', 'exam', [], false)).toBe('ok')
+    expect(pageVerdict('RESIPI_4.pdf', 'textbook', [], false)).toBe('ok')
   })
 })
 

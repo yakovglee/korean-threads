@@ -377,8 +377,66 @@ it('NFD-запрос находит NFC-текст', async () => {})
 - [x] **Step 2: Запустить `npx vitest run tests/kb.extract.test.ts tests/kb.index.test.ts tests/kb.search.test.ts`. FAIL.**
 - [x] **Step 3: Реализовать.** Рендер PDF: `mupdf` (WASM) или `pdfjs-dist` с `@napi-rs/canvas`, выбрать по актуальной документации. `scripts/ingest-kb.ts` обходит рекурсивно `books/md/*.md`, `books/GRAMMAR_MAIN.md` (kind `grammar`), оба PDF `합격 레시피` (kind `textbook`) и все PDF в `books/TOPIK/` (kind `exam`); файлы с неотображаемыми именами и `.mp3`/`.djvu` пропускает с записью причины. Флаги `--dry-run` (подсчёт страниц без текстового слоя и оценка стоимости OCR по трём пробным страницам, без записи) и `--yes` (без него полный OCR не стартует).
 - [x] **Step 4: Тесты проходят.**
-- [ ] **Step 5: `npx tsx scripts/ingest-kb.ts --dry-run`: показать владельцу, сколько страниц надо распознавать и во сколько это обойдётся. После его согласия: пробное OCR трёх страниц (учебник, лист вопросов экзамена, таблица ответов), показать текст на сверку, затем полный запуск с `--yes`, затем `embedMissing`.**
+- [x] **Step 5 (выполнен через Task 6a, 20.11.2026: бесплатный Vision вместо платного OCR, таблицы ответов ждут): `npx tsx scripts/ingest-kb.ts --dry-run`: показать владельцу, сколько страниц надо распознавать и во сколько это обойдётся. После его согласия: пробное OCR трёх страниц (учебник, лист вопросов экзамена, таблица ответов), показать текст на сверку, затем полный запуск с `--yes`, затем `embedMissing`.**
 - [ ] **Step 6: Commit `feat: knowledge base with ocr and hybrid search`.**
+
+---
+
+### Task 6a: Бесплатное распознавание страниц (Apple Vision) и отчёт
+
+Решение владельца 19.11.2026: страницы без текстового слоя распознаёт встроенный OCR macOS (Vision: `ko-KR` и `en-US`, точный режим). Это бесплатно, и страницы не покидают Mac. Платная визуальная модель остаётся для отдельных страниц через `--ocr-page`; какие страницы платные, владелец решает по отчёту `--ocr-report`.
+
+**Files:**
+- Create: `scripts/vision-ocr.swift`, `src/lib/kb/vision.ts`, `src/lib/kb/vision-text.ts`
+- Modify: `src/lib/kb/extract.ts`, `src/lib/kb/index.ts`, `scripts/ingest-kb.ts`
+- Test: `tests/kb.vision.test.ts`, `tests/kb.extract.test.ts`, `tests/kb.index.test.ts`
+
+**Interfaces:**
+
+```ts
+// src/lib/kb/vision.ts
+export interface VisionLine { t: string; c: number; x: number; y: number; w: number; h: number } // t — текст в NFC; x, y, w, h — доли страницы 0–1 от левого верхнего угла
+export interface VisionPage { lines: VisionLine[] } // строки в порядке, который дал Vision
+export type VisionOcr = (imagePng: Buffer) => Promise<VisionPage>
+export function appleVision(opts?: { bin?: string; source?: string }): VisionOcr
+// src/lib/kb/vision-text.ts
+export function visionText(page: VisionPage): string
+export function fixMarkers(text: string): string
+export interface PageFlag { code: 'empty' | 'pictures' | 'options'; detail: string }
+export function checkVisionPage(page: VisionPage, text: string): PageFlag[]
+```
+
+Правила:
+- `scripts/vision-ocr.swift`: PNG из stdin → в stdout одна строка JSON `{"lines":[{"t","c","x","y","w","h"}]}`. `VNRecognizeTextRequest`: `.accurate`, `recognitionLanguages = ["ko-KR","en-US"]`, `usesLanguageCorrection = true`; y пересчитан от верхнего края (`1 - maxY`). Ошибка: код выхода 1 и текст в stderr.
+- `appleVision`: бинарник по умолчанию `data/bin/vision-ocr`, исходник `scripts/vision-ocr.swift` (оба от `process.cwd()`). Нет бинарника или он старше исходника — собрать `swiftc -O <исходник> -o <бинарник>`, один раз на процесс. Запуск на каждую страницу: PNG в stdin, разбор JSON; ненулевой код выхода — ошибка с stderr.
+- Кэш страницы в `data/ocr/<sha1>/`: `<стр>.md` — платный результат (как раньше), `<стр>.vision.json` — сырой ответ Vision. При чтении `<стр>.md` важнее: если он есть, Vision не вызывается и `.vision.json` не читается. Текст из Vision строится `visionText` при каждом чтении, поэтому правка правил раскладки не требует распознавать заново.
+- `ExtractDeps.vision?: VisionOcr`. Страница без текстового слоя: есть `<стр>.md` → он; иначе при `deps.vision` — `.vision.json` из кэша или `vision(renderPdfPage(path, page, 200))` с атомарной записью кэша; иначе как раньше (`llm.vision` → `<стр>.md`). Во всех трёх случаях `via: 'ocr'`.
+- `scripts/ingest-kb.ts`: `--ocr-engine vision|llm`, по умолчанию `vision`. При `vision` без `--yes` распознавание идёт (оно бесплатное), а `--yes` нужен только для векторов. `--ocr-report`: Vision по всем страницам без текстового слоя (с учётом `--only`, `--exclude`, `--force-ocr`), без базы и без модели; пишет `data/ocr/report.tsv` и печатает сводку по причинам. `--ocr-report` вместе с `--dry-run` или `--ocr-page` — ошибка.
+Правила `visionText`, `fixMarkers` и `checkVisionPage` подобраны 19.11.2026 по пробному прогону Vision на 600 страницах книг (прототип на Python, результат совпадает с фикстурами `tests/fixtures/vision/*.json` → `*.txt`). «Длина» строки — число кодовых точек.
+
+`visionText(page)`:
+1. Строки с пустым `t.trim()` отбрасываются. `mh` — медиана высот: отсортированные `h`, элемент с индексом `floor(n / 2)`.
+2. Две колонки. Берутся строки, у которых `t.trim()` длиннее 3. `cross` — у них `x < 0.45` и `x + w > 0.55`; `left` — `x + w <= 0.52`; `right` — `x >= 0.48`; `marked` — строки из `right`, чей `t.trim()` начинается с ①②③④. Страница двухколоночная, если строк больше нуля, `cross <= 0.05 × число строк`, `left >= 6`, `right >= 6` и `marked <= 0.5 × right` (иначе это ряд вариантов «① ② | ③ ④», а не колонки). Тогда группа A — все строки с `x + w / 2 < 0.5`, группа B — остальные, A идёт перед B. Иначе одна группа.
+3. Ряды внутри группы: строки по возрастанию `y + h / 2` (сортировка устойчивая). Строка входит в последний ряд, если `|cy − cy первой строки ряда| < 0.5 × min(h первой строки ряда, h строки)`; иначе начинает новый ряд. В ряду строки по возрастанию `x`, тексты `t.trim()` через один пробел.
+4. Перед рядом ставится пустая строка, если в результате уже что-то есть и `top ряда − bottom предыдущего ряда этой группы > 1.5 × mh` (`top` — минимум `y`, `bottom` — максимум `y + h` по строкам ряда). После каждой группы — пустая строка, если результат не кончается ею. Ряды через `\n`, весь текст `trim()`, затем `fixMarkers`.
+
+`fixMarkers(text)` по строкам `text.split('\n')`:
+1. Сначала в каждой строке `⑧` → `③`, если в ней или в двух строках до и после есть ② или ④.
+2. Затем для каждой строки `s` (окрестность `near` — эта строка и по одной соседней, уже после шага 1) каждое совпадение `/(?<!\S)([1-4lI|])(?=\s+[가-힣(])/g`: `d` = 1 для `l`, `I`, `|`, иначе цифра; `before` и `after` — текст строки до и после совпадения (по исходной строке, не по уже заменённой). Если `before` подходит под `/^\s*(\d{1,2}\.?\s*)?$/` (начало строки или после номера вопроса), токен меняется на кружок `d`, когда в `near` есть кружок `d − 1` или `d + 1`. Иначе: если `before` кончается кружком (`/[①②③④]\s*$/`), токен не меняется; меняется, когда `d > 1`, в `before` есть кружок `d − 1` и (`d = 4` или в `after` есть кружок `d + 1`).
+
+`checkVisionPage(page, text)`:
+- `empty`: в `text` без пробельных знаков меньше 15 знаков → только `[{ code: 'empty', detail: '<N> зн.' }]`.
+- `pictures`: строк `page.lines`, у которых весь `t` подходит под `/^\s*[①②③④][\s.]*$/`, не меньше 2 → `detail: '<N> вариантов без текста'`.
+- `options`: сколько раз в `text` встречается каждый из ①②③④; если максимум ≥ 2 и не равен минимуму → `detail: '①×a ②×b ③×c ④×d'`.
+- Мусорных символов Vision почти не даёт (на 600 страницах не больше 1,5%), поэтому такой проверки нет.
+
+Вердикт страницы в отчёте: уже есть `<стр>.md` → `уже платно`; в имени файла (не папки: папки выпусков вида `47회_TOPIK1_기출 및 정답/` тоже его содержат) есть `정답` → `платно: таблица ответов` (Vision теряет ячейки таблиц: при 200–400 dpi находит 10–13 ответов из 50, а таблицы нужны Task 11); флаг `empty` или `pictures` → `не нужно`; документ `exam` с флагом `options` → `можно платно`; иначе `ok`. У учебников флаг `options` не учитывается: в разборах ответов значков больше, чем вариантов.
+
+- [x] **Step 1: Утилита Vision и клиент `appleVision`.**
+- [x] **Step 2: `visionText`, `fixMarkers`, `checkVisionPage` с тестами на настоящем выводе Vision.**
+- [x] **Step 3: Кэш и приоритет платного результата в `extractDocument`.**
+- [x] **Step 4: `--ocr-engine`, `--ocr-report` и отчёт.**
+- [x] **Step 5: Полный отчёт по книгам владельцу, затем загрузка в dev-базу и векторы.** Таблицы ответов (25 файлов, 49 страниц) не загружены: ждут решения владельца о платном распознавании, нужны до Task 11.
 
 ---
 

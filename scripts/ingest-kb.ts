@@ -1,5 +1,5 @@
 // Загрузка базы знаний из папки книг: документы → kb_docs и kb_chunks, затем векторы (embedMissing).
-// Запуск из корня проекта: npx tsx scripts/ingest-kb.ts [--dry-run] [--only <подстрока>] [--exclude <подстрока>] [--force-ocr <подстрока>] [--jobs <1–8>] [--ocr-page <путь>:<номер>] [--yes] [--no-embed]
+// Запуск из корня проекта: npx tsx scripts/ingest-kb.ts [--dry-run] [--only <подстрока>] [--exclude <подстрока>] [--force-ocr <подстрока>] [--jobs <1–8>] [--ocr-page <путь>:<номер>] [--ocr-engine vision|llm] [--ocr-report] [--yes] [--no-embed]
 // Папка книг: KB_SOURCE_DIR или ../books. Кэш распознавания и data/ocr/usage.json лежат в data/ocr (на Mac, в облако не идут).
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
@@ -7,11 +7,20 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { loadConfig } from '../src/lib/config'
 import { openDb } from '../src/lib/db'
-import { cachePath, OCR_MAX_TOKENS, OCR_PROMPT, renderPdfPage, writeCachedPage } from '../src/lib/kb/extract'
+import {
+  cachePath,
+  extractDocument,
+  OCR_MAX_TOKENS,
+  OCR_PROMPT,
+  renderPdfPage,
+  visionCachePath,
+  writeCachedPage,
+} from '../src/lib/kb/extract'
 import {
   classifySource,
   indexDocument,
   ocrPlan,
+  pageVerdict,
   parseIngestArgs,
   runLimited,
   scanSource,
@@ -21,6 +30,8 @@ import {
 import { embedMissing } from '../src/lib/kb/search'
 import { nfc } from '../src/lib/ko'
 import { openRouterClient, type LlmClient } from '../src/lib/llm'
+import { appleVision, type VisionOcr, type VisionPage } from '../src/lib/kb/vision'
+import { checkVisionPage, type PageFlag } from '../src/lib/kb/vision-text'
 
 for (const f of ['.env.local', '.env']) if (existsSync(f)) process.loadEnvFile(f)
 
@@ -38,6 +49,13 @@ async function main(): Promise<void> {
   const { docs, skipped, excluded } = await collectDocs(booksDir, args)
   printScan(docs, skipped, excluded)
 
+  if (args.ocrReport) {
+    await ocrReport(args, docs, cacheDir)
+    return
+  }
+
+  // встроенный OCR macOS: бесплатный и без выхода страниц с Mac; при llm распознаёт визуальная модель
+  const vision = args.ocrEngine === 'vision' ? appleVision() : undefined
   const usage: OcrUsage = { pages: 0, inputTokens: 0, outputTokens: 0 }
   const llm = countingLlm(openRouterClient(cfg), usage)
   try {
@@ -46,7 +64,7 @@ async function main(): Promise<void> {
     } else if (args.dryRun) {
       await dryRun(docs, cacheDir)
     } else {
-      await ingest(args, cfg.databaseUrl, docs, booksDir, cacheDir, llm)
+      await ingest(args, cfg.databaseUrl, docs, booksDir, cacheDir, llm, vision)
     }
   } finally {
     if (usage.pages > 0) await addUsage(cacheDir, usage)
@@ -153,10 +171,12 @@ async function ingest(
   booksDir: string,
   cacheDir: string,
   llm: LlmClient,
+  vision: VisionOcr | undefined,
 ): Promise<void> {
   const db = await openDb(databaseUrl)
   try {
-    if (!args.yes) {
+    // Без --yes проверяется только модельное распознавание: Vision бесплатный и на проверку не ставится
+    if (!args.yes && args.ocrEngine === 'llm') {
       const pending = await ocrPlan(db, docs, cacheDir)
       if (pending.pages > 0) {
         console.log(`не из кэша нужно распознать ${pending.pages} стр. в документах: ${pending.docs.join(', ')}`)
@@ -174,7 +194,7 @@ async function ingest(
       async d => {
         const r = await indexDocument(
           db,
-          { llm, cacheDir, baseDir: booksDir },
+          { llm, vision, cacheDir, baseDir: booksDir },
           { path: d.abs, kind: d.kind, forceOcr: d.forceOcr },
         )
         let state = 'загружен'
@@ -210,6 +230,94 @@ async function ingest(
   } finally {
     await db.close()
   }
+}
+
+interface ReportRow { rel: string; page: number; verdict: string; flags: string }
+interface ReportDoc { pages: number; rows: ReportRow[] }
+const VERDICTS = ['уже платно', 'платно: таблица ответов', 'не нужно', 'можно платно', 'ok'] as const
+
+// --ocr-report: Vision по страницам без текстового слоя всех PDF (с --only, --exclude, --force-ocr). База не открывается,
+// модель не вызывается. Пишет data/ocr/report.tsv, печатает строку по каждому документу и сводку по вердиктам.
+async function ocrReport(args: IngestArgs, docs: Doc[], cacheDir: string): Promise<void> {
+  const vision = appleVision()
+  const llm = noModel()
+  const pdfs = docs.filter(d => path.extname(d.abs).toLowerCase() === '.pdf')
+  const results = new Map<string, ReportDoc>()
+  let failed = 0
+  await runLimited(
+    pdfs,
+    args.jobs,
+    async d => {
+      results.set(d.rel, await reportDoc(d, vision, llm, cacheDir))
+    },
+    (d, err) => {
+      failed += 1
+      console.error(`${d.rel}: ${errorText(err)}`)
+    },
+  )
+
+  const rows: ReportRow[] = []
+  for (const d of pdfs) {
+    const r = results.get(d.rel)
+    if (!r) continue
+    rows.push(...r.rows)
+    if (r.rows.length > 0) console.log(`${d.rel} | стр. ${r.pages} | ${verdictCounts(r.rows)}`)
+  }
+  rows.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : a.page - b.page))
+
+  await mkdir(cacheDir, { recursive: true })
+  const file = path.join(cacheDir, 'report.tsv')
+  const tsv = ['путь\tстр\tвердикт\tфлаги', ...rows.map(r => [r.rel, r.page, r.verdict, r.flags].join('\t'))]
+  await writeFile(file, tsv.join('\n') + '\n', 'utf8')
+
+  console.log(`страниц без текстового слоя: ${rows.length}`)
+  for (const v of VERDICTS) console.log(`  ${v}: ${rows.filter(r => r.verdict === v).length}`)
+  console.log(`отчёт: ${path.resolve(file)}`)
+  if (failed > 0) {
+    console.error(`документов с ошибкой: ${failed}`)
+    process.exitCode = 1
+  }
+}
+
+// Страницы PDF: распознавание Vision (или ответ из кэша), по каждой странице без .md — флаги проверки
+async function reportDoc(d: Doc, vision: VisionOcr, llm: LlmClient, cacheDir: string): Promise<ReportDoc> {
+  const sha = sha1Of(await readFile(d.abs))
+  const pages = await extractDocument(d.abs, {
+    llm,
+    vision,
+    cacheDir,
+    minChars: d.forceOcr ? Infinity : undefined,
+  })
+  const rows: ReportRow[] = []
+  for (const p of pages) {
+    if (p.via !== 'ocr') continue
+    // <стр>.md — платный результат, Vision его не перекрывает; без него .vision.json записал extractDocument
+    const paid = existsSync(cachePath(cacheDir, sha, p.page))
+    const flags: PageFlag[] = paid
+      ? []
+      : checkVisionPage(JSON.parse(await readFile(visionCachePath(cacheDir, sha, p.page), 'utf8')) as VisionPage, p.text)
+    rows.push({
+      rel: d.rel,
+      page: p.page,
+      verdict: pageVerdict(d.rel, d.kind, flags, paid),
+      flags: flags.map(f => `${f.code}: ${f.detail}`).join('; '),
+    })
+  }
+  return { pages: pages.length, rows }
+}
+
+// «вердикт×число» по вердиктам, в которых есть страницы
+function verdictCounts(rows: ReportRow[]): string {
+  return VERDICTS.map(v => [v, rows.filter(r => r.verdict === v).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([v, n]) => `${v}×${n}`)
+    .join(', ')
+}
+
+// В --ocr-report модель не нужна: если кто-то её вызовет, это ошибка
+function noModel(): LlmClient {
+  const fail = (): Promise<never> => Promise.reject(new Error('модель не вызывается в --ocr-report'))
+  return { json: fail, vision: fail, embed: fail }
 }
 
 // --ocr-page: распознать указанные страницы через тот же кэш и напечатать текст. База не открывается и не пишется.

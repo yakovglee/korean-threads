@@ -8,6 +8,7 @@ import type { Db } from '../db'
 import { nfc } from '../ko'
 import { cachePath, chunkPages, extractDocument, scanDocument, type ExtractDeps } from './extract'
 import type { KbKind } from './search'
+import type { PageFlag } from './vision-text'
 
 // Чанки вставляются многострочными insert по 200 строк (5 параметров на строку)
 const INSERT_BATCH = 200
@@ -155,6 +156,8 @@ function skip(reason: string): SourceClass {
   return { ok: false, reason }
 }
 
+export type OcrEngine = 'vision' | 'llm'
+
 export interface IngestArgs {
   dryRun: boolean
   yes: boolean
@@ -164,6 +167,19 @@ export interface IngestArgs {
   exclude: string[]
   forceOcr: string[]
   jobs: number
+  ocrEngine: OcrEngine
+  ocrReport: boolean
+}
+
+// Вердикт страницы без текстового слоя для --ocr-report. Порядок проверок важен: «уже платно» важнее всего.
+// paid — для страницы уже есть <стр>.md (платный результат из кэша).
+export function pageVerdict(rel: string, kind: SourceKind, flags: PageFlag[], paid: boolean): string {
+  if (paid) return 'уже платно'
+  // только имя файла: папки выпусков вида «47회_TOPIK1_기출 및 정답/» тоже содержат 정답
+  if (nfc(basename(rel)).includes(nfc('정답'))) return 'платно: таблица ответов'
+  if (flags.some(f => f.code === 'empty' || f.code === 'pictures')) return 'не нужно'
+  if (kind === 'exam' && flags.some(f => f.code === 'options')) return 'можно платно'
+  return 'ok'
 }
 
 // Разбор флагов scripts/ingest-kb.ts. Неизвестный флаг, лишний аргумент и флаг без значения — ошибка.
@@ -177,6 +193,8 @@ export function parseIngestArgs(argv: string[]): IngestArgs {
     exclude: [],
     forceOcr: [],
     jobs: 1,
+    ocrEngine: 'vision',
+    ocrReport: false,
   }
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i]
@@ -201,12 +219,26 @@ export function parseIngestArgs(argv: string[]): IngestArgs {
     } else if (flag === '--jobs') {
       i += 1
       args.jobs = parseJobs(valueAt(argv, i, flag))
+    } else if (flag === '--ocr-engine') {
+      i += 1
+      args.ocrEngine = parseOcrEngine(valueAt(argv, i, flag))
+    } else if (flag === '--ocr-report') {
+      args.ocrReport = true
     } else {
       throw new Error(`неизвестный аргумент: ${flag}`)
     }
   }
   if (args.dryRun && args.ocrPages.length > 0) throw new Error('--dry-run и --ocr-page вместе не используются')
+  if (args.ocrReport && (args.dryRun || args.ocrPages.length > 0)) {
+    throw new Error('--ocr-report вместе с --dry-run или --ocr-page не используется')
+  }
   return args
+}
+
+// --ocr-engine: vision (встроенный OCR macOS) или llm (визуальная модель)
+function parseOcrEngine(v: string): OcrEngine {
+  if (v !== 'vision' && v !== 'llm') throw new Error(`--ocr-engine: нужно vision или llm, получено «${v}»`)
+  return v
 }
 
 function valueAt(argv: string[], i: number, flag: string): string {

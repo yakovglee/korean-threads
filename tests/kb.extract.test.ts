@@ -3,7 +3,9 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { chunkPages, extractDocument, OCR_PROMPT, scanDocument, writeCachedPage, type PageText } from '../src/lib/kb/extract'
+import { chunkPages, extractDocument, OCR_PROMPT, scanDocument, visionCachePath, writeCachedPage, type PageText } from '../src/lib/kb/extract'
+import type { VisionOcr, VisionPage } from '../src/lib/kb/vision'
+import { visionText } from '../src/lib/kb/vision-text'
 import { LlmError, type LlmClient } from '../src/lib/llm'
 
 type VisionArgs = { imagePng: Buffer; prompt: string; maxTokens?: number }
@@ -217,5 +219,91 @@ describe('scanDocument', () => {
     writeFileSync(md, 'текст')
     const mdInfo = await scanDocument(md, { readTexts: () => Promise.reject(new Error('для .md чтение PDF не ожидалось')) })
     expect(mdInfo).toEqual({ pages: 1, ocrPages: [] })
+  })
+})
+
+describe('extractDocument с Vision', () => {
+  // VisionOcr с подменённым ответом: запоминает PNG, на которые его звали
+  function fakeVision(answer: () => VisionPage | Promise<VisionPage>) {
+    const calls: Buffer[] = []
+    const vision: VisionOcr = async (imagePng) => {
+      calls.push(imagePng)
+      return answer()
+    }
+    return { vision, calls }
+  }
+
+  // ответ Vision: два ряда, второй — варианты
+  const RESPONSE: VisionPage = {
+    lines: [
+      { t: '1. 다음 중 맞는 것은?', c: 0.9, x: 0.1, y: 0.1, w: 0.8, h: 0.05 },
+      { t: '① 가', c: 0.9, x: 0.1, y: 0.2, w: 0.3, h: 0.05 },
+    ],
+  }
+
+  it('Vision зовётся один раз с PNG от render при 200 dpi, llm не зовётся, .vision.json записан', async () => {
+    const pdf = makePdf()
+    const { llm, calls: llmCalls } = fakeLlm()
+    const { vision, calls } = fakeVision(() => RESPONSE)
+    const dpis: (number | undefined)[] = []
+    const render = async (_file: string, page: number, dpi?: number): Promise<Buffer> => {
+      dpis.push(dpi)
+      return Buffer.from(`png-${page}`)
+    }
+    const out = await extractDocument(pdf, {
+      llm,
+      vision,
+      cacheDir: cacheDir(),
+      render,
+      readTexts: async () => [''],
+    })
+    expect(out).toEqual([{ page: 1, text: visionText(RESPONSE), via: 'ocr' }])
+    expect(dpis).toEqual([200])
+    expect(calls).toEqual([Buffer.from('png-1')])
+    expect(llmCalls).toHaveLength(0)
+    const cached = JSON.parse(readFileSync(visionCachePath(cacheDir(), sha1(pdf), 1), 'utf8'))
+    expect(cached).toEqual(RESPONSE)
+  })
+
+  it('второй запуск берёт .vision.json и Vision не зовёт', async () => {
+    const pdf = makePdf()
+    const { llm } = fakeLlm()
+    const { vision, calls } = fakeVision(() => RESPONSE)
+    const deps = { llm, vision, cacheDir: cacheDir(), render: fakeRender().render, readTexts: async () => [''] }
+    const first = await extractDocument(pdf, deps)
+    const second = await extractDocument(pdf, deps)
+    expect(second).toEqual(first)
+    expect(second).toEqual([{ page: 1, text: visionText(RESPONSE), via: 'ocr' }])
+    expect(calls).toHaveLength(1)
+  })
+
+  it('при готовом <страница>.md Vision и llm не зовутся, текст берётся из .md', async () => {
+    const pdf = makePdf()
+    const { llm, calls: llmCalls } = fakeLlm()
+    const { vision, calls } = fakeVision(() => RESPONSE)
+    const { render, pages } = fakeRender()
+    await writeCachedPage(join(cacheDir(), sha1(pdf), '1.md'), '# Из md')
+    const out = await extractDocument(pdf, {
+      llm,
+      vision,
+      cacheDir: cacheDir(),
+      render,
+      readTexts: async () => [''],
+    })
+    expect(out).toEqual([{ page: 1, text: '# Из md', via: 'ocr' }])
+    expect(calls).toHaveLength(0)
+    expect(llmCalls).toHaveLength(0)
+    expect(pages).toHaveLength(0)
+  })
+
+  it('ошибка Vision не пишет кэш и пробрасывается, llm не зовётся', async () => {
+    const pdf = makePdf()
+    const { llm, calls: llmCalls } = fakeLlm()
+    const { vision } = fakeVision(() => Promise.reject(new Error('сбой Vision')))
+    await expect(
+      extractDocument(pdf, { llm, vision, cacheDir: cacheDir(), render: fakeRender().render, readTexts: async () => [''] }),
+    ).rejects.toThrow('сбой Vision')
+    expect(existsSync(visionCachePath(cacheDir(), sha1(pdf), 1))).toBe(false)
+    expect(llmCalls).toHaveLength(0)
   })
 })
